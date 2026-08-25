@@ -4,10 +4,20 @@
    lists the required keys; generate with `python3 -c "import secrets;
    print(secrets.token_urlsafe(50))"` etc.). Never commit this file.
 
-2. Build every image:
+2. Build every image, tagged with the git commit they came from
+   (`infra/build-images.sh` -- tags each image `<name>:<short-sha>` AND
+   `<name>:latest`; appends `-dirty` to the sha if the working tree has
+   uncommitted changes, so an accidental deploy-from-dirty-tree is
+   visible in the tag itself, not silent):
    ```bash
-   $COMPOSE build
+   infra/build-images.sh
    ```
+   Record the printed SHA somewhere durable (a deploy log, ticket, or
+   registry tag) -- that is the release identity: exactly which commit
+   produced the containers currently running. No image registry is
+   configured yet (see the Phase 20/21 audit) -- `docker push` to one is
+   a one-line addition to that script once a registry and its auth are
+   actually chosen; do not invent one in the meantime.
 
 3. Bring the stack up. `migrate` runs once and exits 0 before `backend`/
    `celery-*` start (`depends_on: condition: service_completed_successfully`

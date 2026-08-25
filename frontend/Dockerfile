@@ -60,6 +60,17 @@ RUN groupadd --gid 1001 nextjs && useradd --uid 1001 --gid nextjs --create-home 
     && apt-get update && apt-get install -y --no-install-recommends curl \
     && rm -rf /var/lib/apt/lists/*
 
+# Real Trivy findings in Phase 20 (production-readiness audit): several
+# HIGH/CRITICAL CVEs (tar, undici, ip-address, brace-expansion) traced not
+# to anything this app depends on, but to npm's OWN bundled dependencies
+# at /usr/local/lib/node_modules/npm -- pnpm overrides can't reach those,
+# because they're vendored inside the base node:24-slim image, not part
+# of this project's dependency graph at all. The standalone server this
+# stage runs (`node server.js`) never invokes npm -- removing it here
+# doesn't change runtime behavior, only removes vulnerable code that was
+# never reachable.
+RUN rm -rf /usr/local/lib/node_modules/npm /usr/local/bin/npm /usr/local/bin/npx /usr/local/bin/corepack
+
 COPY --from=installer --chown=nextjs:nextjs /app/apps/${APP}/.next/standalone ./
 COPY --from=installer --chown=nextjs:nextjs /app/apps/${APP}/.next/static ./apps/${APP}/.next/static
 

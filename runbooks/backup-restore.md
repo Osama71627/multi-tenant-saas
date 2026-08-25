@@ -20,11 +20,32 @@ represent this as PITR in any status report; `docs/ARCHITECTURE.md`'s
 POSTGRES_SUPERUSER_PASSWORD=$POSTGRES_SUPERUSER_PASSWORD infra/postgres/backup.sh saas-staging saas_staging
 ```
 
-Writes `backups/saas_staging_<UTC timestamp>.dump`. Retention: none
-automated in Phase 19 -- this is a manual/cron-able script, not a
-scheduled job. For real staging use, wire it to `cron`/a scheduled CI job
-and prune anything older than N days; that wiring is deferred (see Phase
-19 technical debt).
+Writes `backups/saas_staging_<UTC timestamp>.dump`.
+
+## Scheduled backups
+
+`infra/postgres/scheduled-backup.sh` is the cron-safe wrapper: it reads
+`POSTGRES_SUPERUSER_PASSWORD` from `.env.staging` directly (cron runs
+with no shell profile / exported secrets), runs `backup.sh`, prunes
+anything in `backups/` older than 7 days, and writes a clear
+`OK`/`FAILED` line per run so a stopped schedule is visible in the log,
+not silent.
+
+Installed on this host as a real crontab entry (`crontab -l`):
+```
+0 3 * * * /path/to/repo/infra/postgres/scheduled-backup.sh >> /path/to/repo/backups/cron.log 2>&1
+```
+
+This was verified with an actual scheduled firing (not just a manual
+run) during the production-readiness audit: a one-time entry was added a
+few minutes in the future, cron fired it for real, and the resulting
+dump was confirmed readable via `pg_restore --list` before the one-time
+entry was removed, leaving only the daily 03:00 schedule above.
+
+7-day retention is the staging/demo choice made here to prove the
+mechanism end to end -- a real production host's actual retention period
+is a decision for whoever provisions that host, not inherited
+automatically from this default.
 
 ## Restore (into an isolated database -- never over the live one)
 

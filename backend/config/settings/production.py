@@ -53,4 +53,19 @@ SENTRY_DSN = env("SENTRY_DSN", default="")  # noqa: F405
 if SENTRY_DSN:
     import sentry_sdk
 
-    sentry_sdk.init(dsn=SENTRY_DSN, traces_sample_rate=0.1, send_default_pii=False)
+    # `environment` distinguishes staging from production in the Sentry UI
+    # (staging.py inherits this whole block and overrides the default --
+    # see that file). `release` ties every reported error back to the
+    # exact commit that produced the running image -- set by whatever
+    # started the container (infra/build-images.sh prints the short SHA
+    # it tagged; the deploy step is responsible for passing it through as
+    # RELEASE_VERSION), never computed by shelling out to git here: the
+    # runtime image has neither a `.git` directory (never copied in) nor
+    # the git binary installed, so that would always fail.
+    sentry_sdk.init(
+        dsn=SENTRY_DSN,
+        environment=env("SENTRY_ENVIRONMENT", default="production"),  # noqa: F405
+        release=env("RELEASE_VERSION", default="unknown"),  # noqa: F405
+        traces_sample_rate=0.1,
+        send_default_pii=False,
+    )

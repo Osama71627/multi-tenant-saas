@@ -64,6 +64,12 @@ services:
       DJANGO_ALLOWED_HOSTS: ".lvh.me,backend,localhost,127.0.0.1"
       DJANGO_CSRF_TRUSTED_ORIGINS: "https://*.lvh.me,https://*.lvh.me:8443"
       PLATFORM_ROOT_DOMAIN: "lvh.me"
+      SENTRY_ENVIRONMENT: "staging"
+      # Set by infra/build-images.sh's printed SHA before `docker compose
+      # up` (export RELEASE_VERSION=<sha>) so Sentry (once a real DSN is
+      # configured) can tie an error report back to the exact commit --
+      # safe default keeps `up` working without it being set.
+      RELEASE_VERSION: ${RELEASE_VERSION:-unknown}
       DATABASE_URL: postgres://app_user:${APP_USER_PASSWORD}@postgres:5432/saas_staging
       MIGRATOR_DATABASE_URL: postgres://app_migrator:${APP_MIGRATOR_PASSWORD}@postgres:5432/saas_staging
       PLATFORM_DATABASE_URL: postgres://app_platform_admin:${APP_PLATFORM_ADMIN_PASSWORD}@postgres:5432/saas_staging

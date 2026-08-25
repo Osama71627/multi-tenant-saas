@@ -1,0 +1,10 @@
+# Confirmed fake Stripe test-mode fixtures used to unit-test
+# apps/payments/encryption.py and apps/payments/tests/test_provider_config.py
+# (masking/redaction behavior, never-log-secrets assertions). Verified by
+# hand during the Phase "production readiness conditions" audit -- these
+# match Stripe's own documented test-key format (sk_test_51H8xyz...) and
+# are not, and have never been, real credentials.
+3a5d4e01db245c86da31fed452a483a3a70a792d:backend/apps/payments/tests/test_encryption.py:stripe-access-token:66
+3a5d4e01db245c86da31fed452a483a3a70a792d:backend/apps/payments/tests/test_provider_config.py:generic-api-key:20
+3a5d4e01db245c86da31fed452a483a3a70a792d:backend/apps/payments/tests/test_provider_config.py:stripe-access-token:19
+3a5d4e01db245c86da31fed452a483a3a70a792d:backend/apps/payments/tests/test_provider_config.py:stripe-access-token:26
