@@ -2,16 +2,18 @@
 # Reproducible release identity (Phase "production readiness conditions",
 # Priority 9): git commit -> image build -> identifiable tag -> deploy.
 #
-# Deliberately NOT a registry/CI pipeline -- this project has neither a
-# remote git host nor a chosen container registry configured yet (see
-# runbooks/README.md and the Phase 20/21 audit). This script is the
-# reproducible-tagging half of that requirement, usable locally today;
-# `docker push` to a real registry is a one-line addition once a registry
-# and its authentication are actually chosen -- do not invent one here.
+# Registry: ghcr.io, under this repo's own GitHub account -- verified
+# working with the same `gh auth token` already used to push/manage this
+# repo (no separate credential was invented; `docker login ghcr.io`
+# genuinely succeeded with it). Push is opt-in (PUSH=1) since not every
+# invocation of this script should publish images.
 #
-# Usage: infra/build-images.sh
+# Usage: infra/build-images.sh          # build + tag only
+#        PUSH=1 infra/build-images.sh   # build + tag + push to ghcr.io
 set -euo pipefail
 cd "$(dirname "${BASH_SOURCE[0]}")/.."
+
+REGISTRY="${REGISTRY:-ghcr.io/osama71627/multi-tenant-saas}"
 
 if ! git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
     echo "No git repository -- a commit-identified tag requires one. See Priority 1." >&2
@@ -37,6 +39,15 @@ done
 
 echo "Built and tagged with ${SHA} (and :latest):"
 docker images --format '{{.Repository}}:{{.Tag}}' | grep ":${SHA}$"
+
+if [ "${PUSH:-0}" = "1" ]; then
+    echo "Pushing to ${REGISTRY} ..."
+    for name in backend storefront dashboard platform-admin; do
+        docker tag "saas-${name}:${SHA}" "${REGISTRY}-${name}:${SHA}"
+        docker push "${REGISTRY}-${name}:${SHA}"
+    done
+    echo "Pushed. Pull with, e.g.: docker pull ${REGISTRY}-backend:${SHA}"
+fi
 
 echo
 echo "Deployment identity: record this SHA alongside wherever these images"
