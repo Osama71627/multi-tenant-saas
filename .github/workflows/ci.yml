@@ -160,7 +160,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: "24"
           cache: "pnpm"
           cache-dependency-path: frontend/pnpm-lock.yaml
 
@@ -264,7 +264,7 @@ jobs:
           version: 11.22.0
       - uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: "24"
           cache: "pnpm"
           cache-dependency-path: frontend/pnpm-lock.yaml
       - name: Install frontend dependencies
@@ -325,7 +325,7 @@ jobs:
         run: docker build -t saas-backend:ci ./backend
 
       - name: Scan backend image
-        uses: aquasecurity/trivy-action@0.28.0
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: saas-backend:ci
           severity: HIGH,CRITICAL
@@ -339,7 +339,7 @@ jobs:
           done
 
       - name: Scan storefront image
-        uses: aquasecurity/trivy-action@0.28.0
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: saas-storefront:ci
           severity: HIGH,CRITICAL
@@ -347,7 +347,7 @@ jobs:
           ignore-unfixed: true
 
       - name: Scan dashboard image
-        uses: aquasecurity/trivy-action@0.28.0
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: saas-dashboard:ci
           severity: HIGH,CRITICAL
@@ -355,7 +355,7 @@ jobs:
           ignore-unfixed: true
 
       - name: Scan platform-admin image
-        uses: aquasecurity/trivy-action@0.28.0
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: saas-platform-admin:ci
           severity: HIGH,CRITICAL
