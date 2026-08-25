@@ -20,7 +20,20 @@ from .base import *  # noqa: F403
 DEBUG = False
 SECRET_KEY = "test-secret-key-not-for-any-real-use"  # noqa: S105 # nosec B105
 
-DATABASES["migrator"]["TEST"] = {"NAME": "test_saas_dev"}  # noqa: F405
+# Real CI failure found on the first actual GitHub Actions run: this used
+# to hardcode "test_saas_dev" as a literal -- it only ever "worked"
+# because the local dev database also happens to be named "saas_dev", so
+# it coincidentally matched Django's own default test-name convention
+# ("test_" + NAME). CI's database is "saas_ci" (MIGRATOR_DATABASE_URL),
+# so the literal diverged from what "default"/"platform" (which have no
+# explicit TEST.NAME override, so Django auto-derives "test_saas_ci" for
+# them) resolved to -- three aliases that were supposed to share ONE
+# physical test database ended up with three different signatures,
+# and Django's own dependency-ordering raised "Circular dependency in
+# TEST[DEPENDENCIES]" trying to reconcile the mismatch. Deriving it from
+# the actual configured NAME (whatever environment this runs in) instead
+# of a literal makes this portable and removes the coincidence.
+DATABASES["migrator"]["TEST"] = {"NAME": f"test_{DATABASES['migrator']['NAME']}"}  # noqa: F405
 DATABASES["default"]["TEST"] = {"MIRROR": "migrator"}  # noqa: F405
 # Same MIRROR trick for the Phase 14 platform alias: same physical test
 # database, but the connection still authenticates as the genuinely
