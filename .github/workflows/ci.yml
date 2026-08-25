@@ -229,6 +229,13 @@ jobs:
       REDIS_URL: redis://localhost:6379/0
       DJANGO_SECRET_KEY: ci-e2e-secret-key
       NEXT_PUBLIC_BACKEND_PORT: "8000"
+      # Real failure found on the first actual CI run: dashboard's BFF
+      # (@saas/auth/backend.ts) throws hard -- "BACKEND_INTERNAL_URL is
+      # not set" -- if this is missing, so every BFF call (including
+      # registration) 500'd before the browser ever reached the
+      # onboarding wizard. Django runs on the same runner here (no
+      # Docker network to cross), so localhost:8000 is the real address.
+      BACKEND_INTERNAL_URL: "http://localhost:8000"
       # Real bug found on the first actual CI run: dashboard/storefront's
       # own package.json `start` scripts hardcode --port 3001/3000 (a
       # CLI flag always wins over a PORT env var in Next.js), but this
@@ -303,7 +310,12 @@ jobs:
 
       - name: Wait for servers
         run: |
-          for url in http://localhost:8000/api/v1/auth/me http://localhost:3001 http://localhost:3000; do
+          # /healthz, not /api/v1/auth/me -- an unauthenticated request to
+          # the latter correctly returns 401, which `curl -sf` treats as
+          # failure, so this loop always burned its full 30*2s budget on
+          # that URL alone before moving on, regardless of whether Django
+          # was actually ready.
+          for url in http://localhost:8000/healthz http://localhost:3001 http://localhost:3000; do
             for i in $(seq 1 30); do
               curl -sf "$url" -o /dev/null && break
               sleep 2
