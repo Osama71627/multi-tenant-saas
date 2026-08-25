@@ -1,32 +1,36 @@
 # Rollback (staging)
 
-**Precondition this runbook assumes and this repository currently lacks:
-version control.** At time of writing, `multi-tenant-Saas` has no `.git`
-directory -- `git log`/`git worktree` below will not work until the repo
-is actually initialized and commits exist. This is flagged as a real
-Phase 19 blocker, not a documentation gap; see the Phase 19 report.
-
-Images are tagged `latest` by compose today (Phase 19 scope did not add a
-registry/tag-per-commit pipeline -- see technical debt in the Phase 19
-report). Rollback therefore means: check out the previous known-good
-commit and rebuild, not a tag flip.
+Git exists (`github.com/Osama71627/multi-tenant-saas`, private) and
+`infra/build-images.sh` tags every image with the commit short-SHA that
+produced it, pushed to `ghcr.io/osama71627/multi-tenant-saas-*` when run
+with `PUSH=1`. Rollback means: identify the last known-good commit, pull
+(or rebuild) its exact images, redeploy.
 
 1. Identify the last good commit (the one before the change you're
-   reverting):
+   reverting) -- prefer a commit whose CI run is confirmed green
+   (`gh run list --workflow=ci.yml`), not just "before my change":
    ```bash
    git log --oneline -- backend frontend docker-compose.staging.yml
    ```
 
-2. Check out that commit into a clean worktree (never `git reset --hard`
-   on the branch you're actively working from):
+2. Either pull the already-published images for that commit:
+   ```bash
+   for name in backend storefront dashboard platform-admin; do
+     docker pull "ghcr.io/osama71627/multi-tenant-saas-${name}:<good-sha>"
+     docker tag "ghcr.io/osama71627/multi-tenant-saas-${name}:<good-sha>" "saas-${name}:latest"
+   done
+   ```
+   or, if that commit was never pushed to the registry, check it out into
+   a clean worktree and rebuild (never `git reset --hard` on the branch
+   you're actively working from):
    ```bash
    git worktree add ../rollback-check <good-commit-sha>
-   cd ../rollback-check
+   cd ../rollback-check && infra/build-images.sh
    ```
 
-3. Rebuild and redeploy from there, following [deploy.md](deploy.md)
-   steps 2-6 against the SAME `.env.staging` (secrets don't roll back --
-   they're environment state, not code).
+3. Redeploy, following [deploy.md](deploy.md) steps 3-6 against the SAME
+   `.env.staging` (secrets don't roll back -- they're environment state,
+   not code).
 
 4. **Database migrations do not automatically roll back.** If the change
    being reverted included a migration, decide explicitly:
