@@ -8,7 +8,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        post: operations["api_v1_auth_email_verify_confirm_create"];
+        post: operations["v1_auth_email_verify_confirm_create"];
         delete?: never;
         options?: never;
         head?: never;
@@ -24,7 +24,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        post: operations["api_v1_auth_email_verify_resend_create"];
+        post: operations["v1_auth_email_verify_resend_create"];
         delete?: never;
         options?: never;
         head?: never;
@@ -51,7 +51,7 @@ export interface paths {
          *     two-step design. Ordinary accounts are completely unaffected and keep
          *     the exact single-step flow this view always had.
          */
-        post: operations["api_v1_auth_login_create"];
+        post: operations["v1_auth_login_create"];
         delete?: never;
         options?: never;
         head?: never;
@@ -67,7 +67,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        post: operations["api_v1_auth_logout_create"];
+        post: operations["v1_auth_logout_create"];
         delete?: never;
         options?: never;
         head?: never;
@@ -81,7 +81,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["api_v1_auth_me_retrieve"];
+        get: operations["v1_auth_me_retrieve"];
         put?: never;
         post?: never;
         delete?: never;
@@ -104,7 +104,7 @@ export interface paths {
          *     pending device, issues one-time recovery codes (returned RAW here,
          *     exactly once), and completes login with a full JWT (mfa=True).
          */
-        post: operations["api_v1_auth_mfa_enroll_confirm_create"];
+        post: operations["v1_auth_mfa_enroll_confirm_create"];
         delete?: never;
         options?: never;
         head?: never;
@@ -126,7 +126,7 @@ export interface paths {
          *     pending TOTP secret and returns it for manual entry into an
          *     authenticator app, plus the equivalent `otpauth://` URI.
          */
-        post: operations["api_v1_auth_mfa_enroll_start_create"];
+        post: operations["v1_auth_mfa_enroll_start_create"];
         delete?: never;
         options?: never;
         head?: never;
@@ -147,7 +147,7 @@ export interface paths {
          *     {challenge_token, code} -> full JWT (mfa=True). `code` may be a 6-digit
          *     TOTP code or a recovery code (see `_looks_like_recovery_code`).
          */
-        post: operations["api_v1_auth_mfa_verify_create"];
+        post: operations["v1_auth_mfa_verify_create"];
         delete?: never;
         options?: never;
         head?: never;
@@ -163,7 +163,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        post: operations["api_v1_auth_password_reset_create"];
+        post: operations["v1_auth_password_reset_create"];
         delete?: never;
         options?: never;
         head?: never;
@@ -179,7 +179,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        post: operations["api_v1_auth_password_reset_confirm_create"];
+        post: operations["v1_auth_password_reset_confirm_create"];
         delete?: never;
         options?: never;
         head?: never;
@@ -199,7 +199,7 @@ export interface paths {
          * @description Takes a refresh type JSON web token and returns an access type JSON web
          *     token if the refresh token is valid.
          */
-        post: operations["api_v1_auth_refresh_create"];
+        post: operations["v1_auth_refresh_create"];
         delete?: never;
         options?: never;
         head?: never;
@@ -215,7 +215,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        post: operations["api_v1_auth_register_create"];
+        post: operations["v1_auth_register_create"];
         delete?: never;
         options?: never;
         head?: never;
@@ -236,7 +236,7 @@ export interface paths {
          *     for why this is a legitimate cross-tenant read. `POST` is the
          *     existing store-provisioning endpoint, unchanged.
          */
-        get: operations["api_v1_dashboard_stores_list"];
+        get: operations["v1_dashboard_stores_list"];
         put?: never;
         /**
          * @description `GET /api/v1/dashboard/stores` -- the store switcher's data source
@@ -245,7 +245,7 @@ export interface paths {
          *     for why this is a legitimate cross-tenant read. `POST` is the
          *     existing store-provisioning endpoint, unchanged.
          */
-        post: operations["api_v1_dashboard_stores_create"];
+        post: operations["v1_dashboard_stores_create"];
         delete?: never;
         options?: never;
         head?: never;
@@ -260,14 +260,14 @@ export interface paths {
             cookie?: never;
         };
         /** @description 404 vs 403 semantics, and why: apps/stores/mixins.py:StoreScopedAPIView. */
-        get: operations["api_v1_dashboard_stores_retrieve"];
+        get: operations["v1_dashboard_stores_retrieve"];
         put?: never;
         post?: never;
         delete?: never;
         options?: never;
         head?: never;
         /** @description 404 vs 403 semantics, and why: apps/stores/mixins.py:StoreScopedAPIView. */
-        patch: operations["api_v1_dashboard_stores_partial_update"];
+        patch: operations["v1_dashboard_stores_partial_update"];
         trace?: never;
     };
     "/api/v1/dashboard/stores/{store_id}/analytics/overview": {
@@ -293,7 +293,7 @@ export interface paths {
          *
          *     Sets `self.store` for subclasses to use.
          */
-        get: operations["api_v1_dashboard_stores_analytics_overview_retrieve"];
+        get: operations["v1_dashboard_stores_analytics_overview_retrieve"];
         put?: never;
         post?: never;
         delete?: never;
@@ -325,7 +325,7 @@ export interface paths {
          *
          *     Sets `self.store` for subclasses to use.
          */
-        get: operations["api_v1_dashboard_stores_categories_retrieve"];
+        get: operations["v1_dashboard_stores_categories_retrieve"];
         put?: never;
         /**
          * @description Base class for any `/api/v1/dashboard/stores/<uuid:store_id>/...`
@@ -343,7 +343,7 @@ export interface paths {
          *
          *     Sets `self.store` for subclasses to use.
          */
-        post: operations["api_v1_dashboard_stores_categories_create"];
+        post: operations["v1_dashboard_stores_categories_create"];
         delete?: never;
         options?: never;
         head?: never;
@@ -375,7 +375,7 @@ export interface paths {
          *
          *     Sets `self.store` for subclasses to use.
          */
-        post: operations["api_v1_dashboard_stores_inventory_adjust_create"];
+        post: operations["v1_dashboard_stores_inventory_adjust_create"];
         delete?: never;
         options?: never;
         head?: never;
@@ -405,7 +405,7 @@ export interface paths {
          *
          *     Sets `self.store` for subclasses to use.
          */
-        get: operations["api_v1_dashboard_stores_inventory_balances_list"];
+        get: operations["v1_dashboard_stores_inventory_balances_list"];
         put?: never;
         post?: never;
         delete?: never;
@@ -437,7 +437,7 @@ export interface paths {
          *
          *     Sets `self.store` for subclasses to use.
          */
-        get: operations["api_v1_dashboard_stores_inventory_locations_list"];
+        get: operations["v1_dashboard_stores_inventory_locations_list"];
         put?: never;
         /**
          * @description Base class for any `/api/v1/dashboard/stores/<uuid:store_id>/...`
@@ -455,7 +455,7 @@ export interface paths {
          *
          *     Sets `self.store` for subclasses to use.
          */
-        post: operations["api_v1_dashboard_stores_inventory_locations_create"];
+        post: operations["v1_dashboard_stores_inventory_locations_create"];
         delete?: never;
         options?: never;
         head?: never;
@@ -485,7 +485,7 @@ export interface paths {
          *
          *     Sets `self.store` for subclasses to use.
          */
-        get: operations["api_v1_dashboard_stores_inventory_movements_retrieve"];
+        get: operations["v1_dashboard_stores_inventory_movements_retrieve"];
         put?: never;
         post?: never;
         delete?: never;
@@ -517,7 +517,7 @@ export interface paths {
          *
          *     Sets `self.store` for subclasses to use.
          */
-        get: operations["api_v1_dashboard_stores_orders_list"];
+        get: operations["v1_dashboard_stores_orders_list"];
         put?: never;
         post?: never;
         delete?: never;
@@ -549,7 +549,7 @@ export interface paths {
          *
          *     Sets `self.store` for subclasses to use.
          */
-        get: operations["api_v1_dashboard_stores_orders_retrieve"];
+        get: operations["v1_dashboard_stores_orders_retrieve"];
         put?: never;
         post?: never;
         delete?: never;
@@ -583,7 +583,7 @@ export interface paths {
          *
          *     Sets `self.store` for subclasses to use.
          */
-        post: operations["api_v1_dashboard_stores_payment_intents_capture_cod_create"];
+        post: operations["v1_dashboard_stores_payment_intents_capture_cod_create"];
         delete?: never;
         options?: never;
         head?: never;
@@ -613,7 +613,7 @@ export interface paths {
          *
          *     Sets `self.store` for subclasses to use.
          */
-        get: operations["api_v1_dashboard_stores_payments_providers_list"];
+        get: operations["v1_dashboard_stores_payments_providers_list"];
         put?: never;
         /**
          * @description Base class for any `/api/v1/dashboard/stores/<uuid:store_id>/...`
@@ -631,7 +631,7 @@ export interface paths {
          *
          *     Sets `self.store` for subclasses to use.
          */
-        post: operations["api_v1_dashboard_stores_payments_providers_create"];
+        post: operations["v1_dashboard_stores_payments_providers_create"];
         delete?: never;
         options?: never;
         head?: never;
@@ -661,7 +661,7 @@ export interface paths {
          *
          *     Sets `self.store` for subclasses to use.
          */
-        get: operations["api_v1_dashboard_stores_pricing_coupons_retrieve"];
+        get: operations["v1_dashboard_stores_pricing_coupons_retrieve"];
         put?: never;
         /**
          * @description Base class for any `/api/v1/dashboard/stores/<uuid:store_id>/...`
@@ -679,7 +679,7 @@ export interface paths {
          *
          *     Sets `self.store` for subclasses to use.
          */
-        post: operations["api_v1_dashboard_stores_pricing_coupons_create"];
+        post: operations["v1_dashboard_stores_pricing_coupons_create"];
         delete?: never;
         options?: never;
         head?: never;
@@ -709,7 +709,7 @@ export interface paths {
          *
          *     Sets `self.store` for subclasses to use.
          */
-        get: operations["api_v1_dashboard_stores_pricing_tax_rates_retrieve"];
+        get: operations["v1_dashboard_stores_pricing_tax_rates_retrieve"];
         put?: never;
         /**
          * @description Base class for any `/api/v1/dashboard/stores/<uuid:store_id>/...`
@@ -727,7 +727,7 @@ export interface paths {
          *
          *     Sets `self.store` for subclasses to use.
          */
-        post: operations["api_v1_dashboard_stores_pricing_tax_rates_create"];
+        post: operations["v1_dashboard_stores_pricing_tax_rates_create"];
         delete?: never;
         options?: never;
         head?: never;
@@ -757,7 +757,7 @@ export interface paths {
          *
          *     Sets `self.store` for subclasses to use.
          */
-        get: operations["api_v1_dashboard_stores_products_list"];
+        get: operations["v1_dashboard_stores_products_list"];
         put?: never;
         /**
          * @description Base class for any `/api/v1/dashboard/stores/<uuid:store_id>/...`
@@ -775,7 +775,7 @@ export interface paths {
          *
          *     Sets `self.store` for subclasses to use.
          */
-        post: operations["api_v1_dashboard_stores_products_create"];
+        post: operations["v1_dashboard_stores_products_create"];
         delete?: never;
         options?: never;
         head?: never;
@@ -805,7 +805,7 @@ export interface paths {
          *
          *     Sets `self.store` for subclasses to use.
          */
-        get: operations["api_v1_dashboard_stores_products_retrieve"];
+        get: operations["v1_dashboard_stores_products_retrieve"];
         put?: never;
         post?: never;
         /**
@@ -824,7 +824,7 @@ export interface paths {
          *
          *     Sets `self.store` for subclasses to use.
          */
-        delete: operations["api_v1_dashboard_stores_products_destroy"];
+        delete: operations["v1_dashboard_stores_products_destroy"];
         options?: never;
         head?: never;
         /**
@@ -843,7 +843,7 @@ export interface paths {
          *
          *     Sets `self.store` for subclasses to use.
          */
-        patch: operations["api_v1_dashboard_stores_products_partial_update"];
+        patch: operations["v1_dashboard_stores_products_partial_update"];
         trace?: never;
     };
     "/api/v1/dashboard/stores/{store_id}/products/{product_id}/options": {
@@ -871,7 +871,7 @@ export interface paths {
          *
          *     Sets `self.store` for subclasses to use.
          */
-        post: operations["api_v1_dashboard_stores_products_options_create"];
+        post: operations["v1_dashboard_stores_products_options_create"];
         delete?: never;
         options?: never;
         head?: never;
@@ -903,7 +903,7 @@ export interface paths {
          *
          *     Sets `self.store` for subclasses to use.
          */
-        post: operations["api_v1_dashboard_stores_products_options_values_create"];
+        post: operations["v1_dashboard_stores_products_options_values_create"];
         delete?: never;
         options?: never;
         head?: never;
@@ -935,7 +935,7 @@ export interface paths {
          *
          *     Sets `self.store` for subclasses to use.
          */
-        post: operations["api_v1_dashboard_stores_products_variants_create"];
+        post: operations["v1_dashboard_stores_products_variants_create"];
         delete?: never;
         options?: never;
         head?: never;
@@ -968,7 +968,7 @@ export interface paths {
          *
          *     Sets `self.store` for subclasses to use.
          */
-        delete: operations["api_v1_dashboard_stores_products_variants_destroy"];
+        delete: operations["v1_dashboard_stores_products_variants_destroy"];
         options?: never;
         head?: never;
         patch?: never;
@@ -997,7 +997,7 @@ export interface paths {
          *
          *     Sets `self.store` for subclasses to use.
          */
-        get: operations["api_v1_dashboard_stores_shipping_methods_rates_list"];
+        get: operations["v1_dashboard_stores_shipping_methods_rates_list"];
         put?: never;
         /**
          * @description Base class for any `/api/v1/dashboard/stores/<uuid:store_id>/...`
@@ -1015,7 +1015,7 @@ export interface paths {
          *
          *     Sets `self.store` for subclasses to use.
          */
-        post: operations["api_v1_dashboard_stores_shipping_methods_rates_create"];
+        post: operations["v1_dashboard_stores_shipping_methods_rates_create"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1045,7 +1045,7 @@ export interface paths {
          *
          *     Sets `self.store` for subclasses to use.
          */
-        get: operations["api_v1_dashboard_stores_shipping_zones_list"];
+        get: operations["v1_dashboard_stores_shipping_zones_list"];
         put?: never;
         /**
          * @description Base class for any `/api/v1/dashboard/stores/<uuid:store_id>/...`
@@ -1063,7 +1063,7 @@ export interface paths {
          *
          *     Sets `self.store` for subclasses to use.
          */
-        post: operations["api_v1_dashboard_stores_shipping_zones_create"];
+        post: operations["v1_dashboard_stores_shipping_zones_create"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1093,7 +1093,7 @@ export interface paths {
          *
          *     Sets `self.store` for subclasses to use.
          */
-        get: operations["api_v1_dashboard_stores_shipping_zones_methods_list"];
+        get: operations["v1_dashboard_stores_shipping_zones_methods_list"];
         put?: never;
         /**
          * @description Base class for any `/api/v1/dashboard/stores/<uuid:store_id>/...`
@@ -1111,7 +1111,7 @@ export interface paths {
          *
          *     Sets `self.store` for subclasses to use.
          */
-        post: operations["api_v1_dashboard_stores_shipping_zones_methods_create"];
+        post: operations["v1_dashboard_stores_shipping_zones_methods_create"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1141,7 +1141,7 @@ export interface paths {
          *
          *     Sets `self.store` for subclasses to use.
          */
-        get: operations["api_v1_dashboard_stores_subscription_retrieve"];
+        get: operations["v1_dashboard_stores_subscription_retrieve"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1175,7 +1175,7 @@ export interface paths {
          *
          *     Sets `self.store` for subclasses to use.
          */
-        post: operations["api_v1_dashboard_stores_supplier_products_promote_create"];
+        post: operations["v1_dashboard_stores_supplier_products_promote_create"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1205,7 +1205,7 @@ export interface paths {
          *
          *     Sets `self.store` for subclasses to use.
          */
-        get: operations["api_v1_dashboard_stores_suppliers_list"];
+        get: operations["v1_dashboard_stores_suppliers_list"];
         put?: never;
         /**
          * @description Base class for any `/api/v1/dashboard/stores/<uuid:store_id>/...`
@@ -1223,7 +1223,7 @@ export interface paths {
          *
          *     Sets `self.store` for subclasses to use.
          */
-        post: operations["api_v1_dashboard_stores_suppliers_create"];
+        post: operations["v1_dashboard_stores_suppliers_create"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1253,7 +1253,7 @@ export interface paths {
          *
          *     Sets `self.store` for subclasses to use.
          */
-        get: operations["api_v1_dashboard_stores_suppliers_products_list"];
+        get: operations["v1_dashboard_stores_suppliers_products_list"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1287,7 +1287,7 @@ export interface paths {
          *
          *     Sets `self.store` for subclasses to use.
          */
-        post: operations["api_v1_dashboard_stores_suppliers_sync_create"];
+        post: operations["v1_dashboard_stores_suppliers_sync_create"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1317,7 +1317,7 @@ export interface paths {
          *
          *     Sets `self.store` for subclasses to use.
          */
-        get: operations["api_v1_dashboard_stores_tags_retrieve"];
+        get: operations["v1_dashboard_stores_tags_retrieve"];
         put?: never;
         /**
          * @description Base class for any `/api/v1/dashboard/stores/<uuid:store_id>/...`
@@ -1335,7 +1335,7 @@ export interface paths {
          *
          *     Sets `self.store` for subclasses to use.
          */
-        post: operations["api_v1_dashboard_stores_tags_create"];
+        post: operations["v1_dashboard_stores_tags_create"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1365,7 +1365,7 @@ export interface paths {
          *
          *     Sets `self.store` for subclasses to use.
          */
-        get: operations["api_v1_dashboard_stores_theme_retrieve"];
+        get: operations["v1_dashboard_stores_theme_retrieve"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1381,7 +1381,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["api_v1_dashboard_theme_presets_list"];
+        get: operations["v1_dashboard_theme_presets_list"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1397,7 +1397,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["api_v1_platform_audit_logs_list"];
+        get: operations["v1_platform_audit_logs_list"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1413,7 +1413,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["api_v1_platform_overview_retrieve"];
+        get: operations["v1_platform_overview_retrieve"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1429,9 +1429,9 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["api_v1_platform_plans_list"];
+        get: operations["v1_platform_plans_list"];
         put?: never;
-        post: operations["api_v1_platform_plans_create"];
+        post: operations["v1_platform_plans_create"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1445,7 +1445,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["api_v1_platform_plans_retrieve"];
+        get: operations["v1_platform_plans_retrieve"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1463,7 +1463,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        post: operations["api_v1_platform_plans_activate_create"];
+        post: operations["v1_platform_plans_activate_create"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1479,7 +1479,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        post: operations["api_v1_platform_plans_deactivate_create"];
+        post: operations["v1_platform_plans_deactivate_create"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1495,7 +1495,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        post: operations["api_v1_platform_plans_versions_create"];
+        post: operations["v1_platform_plans_versions_create"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1509,7 +1509,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["api_v1_platform_stores_list"];
+        get: operations["v1_platform_stores_list"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1525,7 +1525,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["api_v1_platform_stores_retrieve"];
+        get: operations["v1_platform_stores_retrieve"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1543,7 +1543,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        post: operations["api_v1_platform_stores_activate_create"];
+        post: operations["v1_platform_stores_activate_create"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1559,7 +1559,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        post: operations["api_v1_platform_stores_suspend_create"];
+        post: operations["v1_platform_stores_suspend_create"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1573,7 +1573,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["api_v1_platform_subscriptions_list"];
+        get: operations["v1_platform_subscriptions_list"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1589,7 +1589,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["api_v1_platform_subscriptions_retrieve"];
+        get: operations["v1_platform_subscriptions_retrieve"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1607,7 +1607,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        post: operations["api_v1_platform_subscriptions_activate_create"];
+        post: operations["v1_platform_subscriptions_activate_create"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1623,7 +1623,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        post: operations["api_v1_platform_subscriptions_cancel_create"];
+        post: operations["v1_platform_subscriptions_cancel_create"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1637,7 +1637,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["api_v1_platform_users_list"];
+        get: operations["v1_platform_users_list"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1653,7 +1653,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["api_v1_platform_users_retrieve"];
+        get: operations["v1_platform_users_retrieve"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1676,7 +1676,7 @@ export interface paths {
          *     `services.reset_user_mfa`'s docstring for why this exists instead of
          *     any self-service MFA bypass.
          */
-        post: operations["api_v1_platform_users_mfa_reset_create"];
+        post: operations["v1_platform_users_mfa_reset_create"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1691,7 +1691,7 @@ export interface paths {
             cookie?: never;
         };
         /** @description Resolves/creates `self.cart` from the cart cookie, setting it on the way out if it's new. */
-        get: operations["api_v1_storefront_cart_retrieve"];
+        get: operations["v1_storefront_cart_retrieve"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1710,9 +1710,9 @@ export interface paths {
         get?: never;
         put?: never;
         /** @description Resolves/creates `self.cart` from the cart cookie, setting it on the way out if it's new. */
-        post: operations["api_v1_storefront_cart_coupon_create"];
+        post: operations["v1_storefront_cart_coupon_create"];
         /** @description Resolves/creates `self.cart` from the cart cookie, setting it on the way out if it's new. */
-        delete: operations["api_v1_storefront_cart_coupon_destroy"];
+        delete: operations["v1_storefront_cart_coupon_destroy"];
         options?: never;
         head?: never;
         patch?: never;
@@ -1728,7 +1728,7 @@ export interface paths {
         get?: never;
         put?: never;
         /** @description Resolves/creates `self.cart` from the cart cookie, setting it on the way out if it's new. */
-        post: operations["api_v1_storefront_cart_items_create"];
+        post: operations["v1_storefront_cart_items_create"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1746,11 +1746,11 @@ export interface paths {
         put?: never;
         post?: never;
         /** @description Resolves/creates `self.cart` from the cart cookie, setting it on the way out if it's new. */
-        delete: operations["api_v1_storefront_cart_items_destroy"];
+        delete: operations["v1_storefront_cart_items_destroy"];
         options?: never;
         head?: never;
         /** @description Resolves/creates `self.cart` from the cart cookie, setting it on the way out if it's new. */
-        patch: operations["api_v1_storefront_cart_items_partial_update"];
+        patch: operations["v1_storefront_cart_items_partial_update"];
         trace?: never;
     };
     "/api/v1/storefront/cart/reprice": {
@@ -1763,7 +1763,7 @@ export interface paths {
         get?: never;
         put?: never;
         /** @description Resolves/creates `self.cart` from the cart cookie, setting it on the way out if it's new. */
-        post: operations["api_v1_storefront_cart_reprice_create"];
+        post: operations["v1_storefront_cart_reprice_create"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1784,7 +1784,7 @@ export interface paths {
          *     independently re-price shipping at authoritative checkout time
          *     (see docs/PHASE_6_REPORT.md's mandatory Phase 8 rule).
          */
-        get: operations["api_v1_storefront_cart_shipping_quotes_list"];
+        get: operations["v1_storefront_cart_shipping_quotes_list"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1815,7 +1815,7 @@ export interface paths {
          *
          *     Sets `self.store` for subclasses to use.
          */
-        get: operations["api_v1_storefront_categories_list"];
+        get: operations["v1_storefront_categories_list"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1834,7 +1834,7 @@ export interface paths {
         get?: never;
         put?: never;
         /** @description Resolves/creates `self.cart` from the cart cookie, setting it on the way out if it's new. */
-        post: operations["api_v1_storefront_checkout_address_create"];
+        post: operations["v1_storefront_checkout_address_create"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1851,7 +1851,7 @@ export interface paths {
         get?: never;
         put?: never;
         /** @description Resolves/creates `self.cart` from the cart cookie, setting it on the way out if it's new. */
-        post: operations["api_v1_storefront_checkout_complete_create"];
+        post: operations["v1_storefront_checkout_complete_create"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1868,7 +1868,7 @@ export interface paths {
         get?: never;
         put?: never;
         /** @description Resolves/creates `self.cart` from the cart cookie, setting it on the way out if it's new. */
-        post: operations["api_v1_storefront_checkout_shipping_create"];
+        post: operations["v1_storefront_checkout_shipping_create"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1885,7 +1885,7 @@ export interface paths {
         get?: never;
         put?: never;
         /** @description Resolves/creates `self.cart` from the cart cookie, setting it on the way out if it's new. */
-        post: operations["api_v1_storefront_checkout_start_create"];
+        post: operations["v1_storefront_checkout_start_create"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1905,7 +1905,7 @@ export interface paths {
          *     which theme, which settings). Host-resolved like every other
          *     storefront endpoint; see `StorefrontAPIView`.
          */
-        get: operations["api_v1_storefront_context_retrieve"];
+        get: operations["v1_storefront_context_retrieve"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1930,7 +1930,7 @@ export interface paths {
          *     response (zero-available and never-stocked look the same to a
          *     shopper: not orderable).
          */
-        get: operations["api_v1_storefront_inventory_availability_retrieve"];
+        get: operations["v1_storefront_inventory_availability_retrieve"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1963,7 +1963,7 @@ export interface paths {
          *
          *     Sets `self.store` for subclasses to use.
          */
-        post: operations["api_v1_storefront_payments_initiate_create"];
+        post: operations["v1_storefront_payments_initiate_create"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1981,7 +1981,7 @@ export interface paths {
          * @description `GET /api/v1/storefront/payments/providers` -- Phase 13's checkout
          *     payment-method picker. Only enabled providers, only `provider_key`.
          */
-        get: operations["api_v1_storefront_payments_providers_list"];
+        get: operations["v1_storefront_payments_providers_list"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2012,7 +2012,7 @@ export interface paths {
          *
          *     Sets `self.store` for subclasses to use.
          */
-        get: operations["api_v1_storefront_products_list"];
+        get: operations["v1_storefront_products_list"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2043,7 +2043,7 @@ export interface paths {
          *
          *     Sets `self.store` for subclasses to use.
          */
-        get: operations["api_v1_storefront_products_retrieve"];
+        get: operations["v1_storefront_products_retrieve"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2075,7 +2075,7 @@ export interface paths {
          *
          *     Sets `self.store` for subclasses to use.
          */
-        post: operations["api_v1_webhooks_payments_create"];
+        post: operations["v1_webhooks_payments_create"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2914,7 +2914,7 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
-    api_v1_auth_email_verify_confirm_create: {
+    v1_auth_email_verify_confirm_create: {
         parameters: {
             query?: never;
             header?: never;
@@ -2932,7 +2932,7 @@ export interface operations {
             };
         };
     };
-    api_v1_auth_email_verify_resend_create: {
+    v1_auth_email_verify_resend_create: {
         parameters: {
             query?: never;
             header?: never;
@@ -2950,7 +2950,7 @@ export interface operations {
             };
         };
     };
-    api_v1_auth_login_create: {
+    v1_auth_login_create: {
         parameters: {
             query?: never;
             header?: never;
@@ -2974,7 +2974,7 @@ export interface operations {
             };
         };
     };
-    api_v1_auth_logout_create: {
+    v1_auth_logout_create: {
         parameters: {
             query?: never;
             header?: never;
@@ -2992,7 +2992,7 @@ export interface operations {
             };
         };
     };
-    api_v1_auth_me_retrieve: {
+    v1_auth_me_retrieve: {
         parameters: {
             query?: never;
             header?: never;
@@ -3010,7 +3010,7 @@ export interface operations {
             };
         };
     };
-    api_v1_auth_mfa_enroll_confirm_create: {
+    v1_auth_mfa_enroll_confirm_create: {
         parameters: {
             query?: never;
             header?: never;
@@ -3028,7 +3028,7 @@ export interface operations {
             };
         };
     };
-    api_v1_auth_mfa_enroll_start_create: {
+    v1_auth_mfa_enroll_start_create: {
         parameters: {
             query?: never;
             header?: never;
@@ -3046,7 +3046,7 @@ export interface operations {
             };
         };
     };
-    api_v1_auth_mfa_verify_create: {
+    v1_auth_mfa_verify_create: {
         parameters: {
             query?: never;
             header?: never;
@@ -3064,7 +3064,7 @@ export interface operations {
             };
         };
     };
-    api_v1_auth_password_reset_create: {
+    v1_auth_password_reset_create: {
         parameters: {
             query?: never;
             header?: never;
@@ -3082,7 +3082,7 @@ export interface operations {
             };
         };
     };
-    api_v1_auth_password_reset_confirm_create: {
+    v1_auth_password_reset_confirm_create: {
         parameters: {
             query?: never;
             header?: never;
@@ -3100,7 +3100,7 @@ export interface operations {
             };
         };
     };
-    api_v1_auth_refresh_create: {
+    v1_auth_refresh_create: {
         parameters: {
             query?: never;
             header?: never;
@@ -3125,7 +3125,7 @@ export interface operations {
             };
         };
     };
-    api_v1_auth_register_create: {
+    v1_auth_register_create: {
         parameters: {
             query?: never;
             header?: never;
@@ -3143,7 +3143,7 @@ export interface operations {
             };
         };
     };
-    api_v1_dashboard_stores_list: {
+    v1_dashboard_stores_list: {
         parameters: {
             query?: never;
             header?: never;
@@ -3162,7 +3162,7 @@ export interface operations {
             };
         };
     };
-    api_v1_dashboard_stores_create: {
+    v1_dashboard_stores_create: {
         parameters: {
             query?: never;
             header?: never;
@@ -3187,7 +3187,7 @@ export interface operations {
             };
         };
     };
-    api_v1_dashboard_stores_retrieve: {
+    v1_dashboard_stores_retrieve: {
         parameters: {
             query?: never;
             header?: never;
@@ -3208,7 +3208,7 @@ export interface operations {
             };
         };
     };
-    api_v1_dashboard_stores_partial_update: {
+    v1_dashboard_stores_partial_update: {
         parameters: {
             query?: never;
             header?: never;
@@ -3235,7 +3235,7 @@ export interface operations {
             };
         };
     };
-    api_v1_dashboard_stores_analytics_overview_retrieve: {
+    v1_dashboard_stores_analytics_overview_retrieve: {
         parameters: {
             query?: never;
             header?: never;
@@ -3258,7 +3258,7 @@ export interface operations {
             };
         };
     };
-    api_v1_dashboard_stores_categories_retrieve: {
+    v1_dashboard_stores_categories_retrieve: {
         parameters: {
             query?: never;
             header?: never;
@@ -3278,7 +3278,7 @@ export interface operations {
             };
         };
     };
-    api_v1_dashboard_stores_categories_create: {
+    v1_dashboard_stores_categories_create: {
         parameters: {
             query?: never;
             header?: never;
@@ -3298,7 +3298,7 @@ export interface operations {
             };
         };
     };
-    api_v1_dashboard_stores_inventory_adjust_create: {
+    v1_dashboard_stores_inventory_adjust_create: {
         parameters: {
             query?: never;
             header?: never;
@@ -3325,7 +3325,7 @@ export interface operations {
             };
         };
     };
-    api_v1_dashboard_stores_inventory_balances_list: {
+    v1_dashboard_stores_inventory_balances_list: {
         parameters: {
             query?: never;
             header?: never;
@@ -3346,7 +3346,7 @@ export interface operations {
             };
         };
     };
-    api_v1_dashboard_stores_inventory_locations_list: {
+    v1_dashboard_stores_inventory_locations_list: {
         parameters: {
             query?: never;
             header?: never;
@@ -3367,7 +3367,7 @@ export interface operations {
             };
         };
     };
-    api_v1_dashboard_stores_inventory_locations_create: {
+    v1_dashboard_stores_inventory_locations_create: {
         parameters: {
             query?: never;
             header?: never;
@@ -3394,7 +3394,7 @@ export interface operations {
             };
         };
     };
-    api_v1_dashboard_stores_inventory_movements_retrieve: {
+    v1_dashboard_stores_inventory_movements_retrieve: {
         parameters: {
             query?: never;
             header?: never;
@@ -3414,7 +3414,7 @@ export interface operations {
             };
         };
     };
-    api_v1_dashboard_stores_orders_list: {
+    v1_dashboard_stores_orders_list: {
         parameters: {
             query?: never;
             header?: never;
@@ -3435,7 +3435,7 @@ export interface operations {
             };
         };
     };
-    api_v1_dashboard_stores_orders_retrieve: {
+    v1_dashboard_stores_orders_retrieve: {
         parameters: {
             query?: never;
             header?: never;
@@ -3457,7 +3457,7 @@ export interface operations {
             };
         };
     };
-    api_v1_dashboard_stores_payment_intents_capture_cod_create: {
+    v1_dashboard_stores_payment_intents_capture_cod_create: {
         parameters: {
             query?: never;
             header?: never;
@@ -3478,7 +3478,7 @@ export interface operations {
             };
         };
     };
-    api_v1_dashboard_stores_payments_providers_list: {
+    v1_dashboard_stores_payments_providers_list: {
         parameters: {
             query?: never;
             header?: never;
@@ -3499,7 +3499,7 @@ export interface operations {
             };
         };
     };
-    api_v1_dashboard_stores_payments_providers_create: {
+    v1_dashboard_stores_payments_providers_create: {
         parameters: {
             query?: never;
             header?: never;
@@ -3526,7 +3526,7 @@ export interface operations {
             };
         };
     };
-    api_v1_dashboard_stores_pricing_coupons_retrieve: {
+    v1_dashboard_stores_pricing_coupons_retrieve: {
         parameters: {
             query?: never;
             header?: never;
@@ -3546,7 +3546,7 @@ export interface operations {
             };
         };
     };
-    api_v1_dashboard_stores_pricing_coupons_create: {
+    v1_dashboard_stores_pricing_coupons_create: {
         parameters: {
             query?: never;
             header?: never;
@@ -3566,7 +3566,7 @@ export interface operations {
             };
         };
     };
-    api_v1_dashboard_stores_pricing_tax_rates_retrieve: {
+    v1_dashboard_stores_pricing_tax_rates_retrieve: {
         parameters: {
             query?: never;
             header?: never;
@@ -3586,7 +3586,7 @@ export interface operations {
             };
         };
     };
-    api_v1_dashboard_stores_pricing_tax_rates_create: {
+    v1_dashboard_stores_pricing_tax_rates_create: {
         parameters: {
             query?: never;
             header?: never;
@@ -3606,7 +3606,7 @@ export interface operations {
             };
         };
     };
-    api_v1_dashboard_stores_products_list: {
+    v1_dashboard_stores_products_list: {
         parameters: {
             query?: never;
             header?: never;
@@ -3627,7 +3627,7 @@ export interface operations {
             };
         };
     };
-    api_v1_dashboard_stores_products_create: {
+    v1_dashboard_stores_products_create: {
         parameters: {
             query?: never;
             header?: never;
@@ -3654,7 +3654,7 @@ export interface operations {
             };
         };
     };
-    api_v1_dashboard_stores_products_retrieve: {
+    v1_dashboard_stores_products_retrieve: {
         parameters: {
             query?: never;
             header?: never;
@@ -3676,7 +3676,7 @@ export interface operations {
             };
         };
     };
-    api_v1_dashboard_stores_products_destroy: {
+    v1_dashboard_stores_products_destroy: {
         parameters: {
             query?: never;
             header?: never;
@@ -3697,7 +3697,7 @@ export interface operations {
             };
         };
     };
-    api_v1_dashboard_stores_products_partial_update: {
+    v1_dashboard_stores_products_partial_update: {
         parameters: {
             query?: never;
             header?: never;
@@ -3725,7 +3725,7 @@ export interface operations {
             };
         };
     };
-    api_v1_dashboard_stores_products_options_create: {
+    v1_dashboard_stores_products_options_create: {
         parameters: {
             query?: never;
             header?: never;
@@ -3746,7 +3746,7 @@ export interface operations {
             };
         };
     };
-    api_v1_dashboard_stores_products_options_values_create: {
+    v1_dashboard_stores_products_options_values_create: {
         parameters: {
             query?: never;
             header?: never;
@@ -3768,7 +3768,7 @@ export interface operations {
             };
         };
     };
-    api_v1_dashboard_stores_products_variants_create: {
+    v1_dashboard_stores_products_variants_create: {
         parameters: {
             query?: never;
             header?: never;
@@ -3789,7 +3789,7 @@ export interface operations {
             };
         };
     };
-    api_v1_dashboard_stores_products_variants_destroy: {
+    v1_dashboard_stores_products_variants_destroy: {
         parameters: {
             query?: never;
             header?: never;
@@ -3811,7 +3811,7 @@ export interface operations {
             };
         };
     };
-    api_v1_dashboard_stores_shipping_methods_rates_list: {
+    v1_dashboard_stores_shipping_methods_rates_list: {
         parameters: {
             query?: never;
             header?: never;
@@ -3833,7 +3833,7 @@ export interface operations {
             };
         };
     };
-    api_v1_dashboard_stores_shipping_methods_rates_create: {
+    v1_dashboard_stores_shipping_methods_rates_create: {
         parameters: {
             query?: never;
             header?: never;
@@ -3861,7 +3861,7 @@ export interface operations {
             };
         };
     };
-    api_v1_dashboard_stores_shipping_zones_list: {
+    v1_dashboard_stores_shipping_zones_list: {
         parameters: {
             query?: never;
             header?: never;
@@ -3882,7 +3882,7 @@ export interface operations {
             };
         };
     };
-    api_v1_dashboard_stores_shipping_zones_create: {
+    v1_dashboard_stores_shipping_zones_create: {
         parameters: {
             query?: never;
             header?: never;
@@ -3909,7 +3909,7 @@ export interface operations {
             };
         };
     };
-    api_v1_dashboard_stores_shipping_zones_methods_list: {
+    v1_dashboard_stores_shipping_zones_methods_list: {
         parameters: {
             query?: never;
             header?: never;
@@ -3931,7 +3931,7 @@ export interface operations {
             };
         };
     };
-    api_v1_dashboard_stores_shipping_zones_methods_create: {
+    v1_dashboard_stores_shipping_zones_methods_create: {
         parameters: {
             query?: never;
             header?: never;
@@ -3959,7 +3959,7 @@ export interface operations {
             };
         };
     };
-    api_v1_dashboard_stores_subscription_retrieve: {
+    v1_dashboard_stores_subscription_retrieve: {
         parameters: {
             query?: never;
             header?: never;
@@ -3980,7 +3980,7 @@ export interface operations {
             };
         };
     };
-    api_v1_dashboard_stores_supplier_products_promote_create: {
+    v1_dashboard_stores_supplier_products_promote_create: {
         parameters: {
             query?: never;
             header?: never;
@@ -4010,7 +4010,7 @@ export interface operations {
             };
         };
     };
-    api_v1_dashboard_stores_suppliers_list: {
+    v1_dashboard_stores_suppliers_list: {
         parameters: {
             query?: never;
             header?: never;
@@ -4031,7 +4031,7 @@ export interface operations {
             };
         };
     };
-    api_v1_dashboard_stores_suppliers_create: {
+    v1_dashboard_stores_suppliers_create: {
         parameters: {
             query?: never;
             header?: never;
@@ -4058,7 +4058,7 @@ export interface operations {
             };
         };
     };
-    api_v1_dashboard_stores_suppliers_products_list: {
+    v1_dashboard_stores_suppliers_products_list: {
         parameters: {
             query?: never;
             header?: never;
@@ -4080,7 +4080,7 @@ export interface operations {
             };
         };
     };
-    api_v1_dashboard_stores_suppliers_sync_create: {
+    v1_dashboard_stores_suppliers_sync_create: {
         parameters: {
             query?: never;
             header?: never;
@@ -4102,7 +4102,7 @@ export interface operations {
             };
         };
     };
-    api_v1_dashboard_stores_tags_retrieve: {
+    v1_dashboard_stores_tags_retrieve: {
         parameters: {
             query?: never;
             header?: never;
@@ -4122,7 +4122,7 @@ export interface operations {
             };
         };
     };
-    api_v1_dashboard_stores_tags_create: {
+    v1_dashboard_stores_tags_create: {
         parameters: {
             query?: never;
             header?: never;
@@ -4142,7 +4142,7 @@ export interface operations {
             };
         };
     };
-    api_v1_dashboard_stores_theme_retrieve: {
+    v1_dashboard_stores_theme_retrieve: {
         parameters: {
             query?: never;
             header?: never;
@@ -4163,7 +4163,7 @@ export interface operations {
             };
         };
     };
-    api_v1_dashboard_theme_presets_list: {
+    v1_dashboard_theme_presets_list: {
         parameters: {
             query?: never;
             header?: never;
@@ -4182,7 +4182,7 @@ export interface operations {
             };
         };
     };
-    api_v1_platform_audit_logs_list: {
+    v1_platform_audit_logs_list: {
         parameters: {
             query?: never;
             header?: never;
@@ -4201,7 +4201,7 @@ export interface operations {
             };
         };
     };
-    api_v1_platform_overview_retrieve: {
+    v1_platform_overview_retrieve: {
         parameters: {
             query?: never;
             header?: never;
@@ -4222,7 +4222,7 @@ export interface operations {
             };
         };
     };
-    api_v1_platform_plans_list: {
+    v1_platform_plans_list: {
         parameters: {
             query?: never;
             header?: never;
@@ -4241,7 +4241,7 @@ export interface operations {
             };
         };
     };
-    api_v1_platform_plans_create: {
+    v1_platform_plans_create: {
         parameters: {
             query?: never;
             header?: never;
@@ -4266,7 +4266,7 @@ export interface operations {
             };
         };
     };
-    api_v1_platform_plans_retrieve: {
+    v1_platform_plans_retrieve: {
         parameters: {
             query?: never;
             header?: never;
@@ -4287,7 +4287,7 @@ export interface operations {
             };
         };
     };
-    api_v1_platform_plans_activate_create: {
+    v1_platform_plans_activate_create: {
         parameters: {
             query?: never;
             header?: never;
@@ -4308,7 +4308,7 @@ export interface operations {
             };
         };
     };
-    api_v1_platform_plans_deactivate_create: {
+    v1_platform_plans_deactivate_create: {
         parameters: {
             query?: never;
             header?: never;
@@ -4329,7 +4329,7 @@ export interface operations {
             };
         };
     };
-    api_v1_platform_plans_versions_create: {
+    v1_platform_plans_versions_create: {
         parameters: {
             query?: never;
             header?: never;
@@ -4356,7 +4356,7 @@ export interface operations {
             };
         };
     };
-    api_v1_platform_stores_list: {
+    v1_platform_stores_list: {
         parameters: {
             query?: never;
             header?: never;
@@ -4375,7 +4375,7 @@ export interface operations {
             };
         };
     };
-    api_v1_platform_stores_retrieve: {
+    v1_platform_stores_retrieve: {
         parameters: {
             query?: never;
             header?: never;
@@ -4396,7 +4396,7 @@ export interface operations {
             };
         };
     };
-    api_v1_platform_stores_activate_create: {
+    v1_platform_stores_activate_create: {
         parameters: {
             query?: never;
             header?: never;
@@ -4417,7 +4417,7 @@ export interface operations {
             };
         };
     };
-    api_v1_platform_stores_suspend_create: {
+    v1_platform_stores_suspend_create: {
         parameters: {
             query?: never;
             header?: never;
@@ -4444,7 +4444,7 @@ export interface operations {
             };
         };
     };
-    api_v1_platform_subscriptions_list: {
+    v1_platform_subscriptions_list: {
         parameters: {
             query?: never;
             header?: never;
@@ -4463,7 +4463,7 @@ export interface operations {
             };
         };
     };
-    api_v1_platform_subscriptions_retrieve: {
+    v1_platform_subscriptions_retrieve: {
         parameters: {
             query?: never;
             header?: never;
@@ -4484,7 +4484,7 @@ export interface operations {
             };
         };
     };
-    api_v1_platform_subscriptions_activate_create: {
+    v1_platform_subscriptions_activate_create: {
         parameters: {
             query?: never;
             header?: never;
@@ -4505,7 +4505,7 @@ export interface operations {
             };
         };
     };
-    api_v1_platform_subscriptions_cancel_create: {
+    v1_platform_subscriptions_cancel_create: {
         parameters: {
             query?: never;
             header?: never;
@@ -4526,7 +4526,7 @@ export interface operations {
             };
         };
     };
-    api_v1_platform_users_list: {
+    v1_platform_users_list: {
         parameters: {
             query?: never;
             header?: never;
@@ -4545,7 +4545,7 @@ export interface operations {
             };
         };
     };
-    api_v1_platform_users_retrieve: {
+    v1_platform_users_retrieve: {
         parameters: {
             query?: never;
             header?: never;
@@ -4566,7 +4566,7 @@ export interface operations {
             };
         };
     };
-    api_v1_platform_users_mfa_reset_create: {
+    v1_platform_users_mfa_reset_create: {
         parameters: {
             query?: never;
             header?: never;
@@ -4586,7 +4586,7 @@ export interface operations {
             };
         };
     };
-    api_v1_storefront_cart_retrieve: {
+    v1_storefront_cart_retrieve: {
         parameters: {
             query?: never;
             header?: never;
@@ -4605,7 +4605,7 @@ export interface operations {
             };
         };
     };
-    api_v1_storefront_cart_coupon_create: {
+    v1_storefront_cart_coupon_create: {
         parameters: {
             query?: never;
             header?: never;
@@ -4630,7 +4630,7 @@ export interface operations {
             };
         };
     };
-    api_v1_storefront_cart_coupon_destroy: {
+    v1_storefront_cart_coupon_destroy: {
         parameters: {
             query?: never;
             header?: never;
@@ -4648,7 +4648,7 @@ export interface operations {
             };
         };
     };
-    api_v1_storefront_cart_items_create: {
+    v1_storefront_cart_items_create: {
         parameters: {
             query?: never;
             header?: never;
@@ -4673,7 +4673,7 @@ export interface operations {
             };
         };
     };
-    api_v1_storefront_cart_items_destroy: {
+    v1_storefront_cart_items_destroy: {
         parameters: {
             query?: never;
             header?: never;
@@ -4693,7 +4693,7 @@ export interface operations {
             };
         };
     };
-    api_v1_storefront_cart_items_partial_update: {
+    v1_storefront_cart_items_partial_update: {
         parameters: {
             query?: never;
             header?: never;
@@ -4720,7 +4720,7 @@ export interface operations {
             };
         };
     };
-    api_v1_storefront_cart_reprice_create: {
+    v1_storefront_cart_reprice_create: {
         parameters: {
             query?: never;
             header?: never;
@@ -4739,7 +4739,7 @@ export interface operations {
             };
         };
     };
-    api_v1_storefront_cart_shipping_quotes_list: {
+    v1_storefront_cart_shipping_quotes_list: {
         parameters: {
             query: {
                 country_code: string;
@@ -4762,7 +4762,7 @@ export interface operations {
             };
         };
     };
-    api_v1_storefront_categories_list: {
+    v1_storefront_categories_list: {
         parameters: {
             query?: never;
             header?: never;
@@ -4781,7 +4781,7 @@ export interface operations {
             };
         };
     };
-    api_v1_storefront_checkout_address_create: {
+    v1_storefront_checkout_address_create: {
         parameters: {
             query?: never;
             header?: never;
@@ -4806,7 +4806,7 @@ export interface operations {
             };
         };
     };
-    api_v1_storefront_checkout_complete_create: {
+    v1_storefront_checkout_complete_create: {
         parameters: {
             query?: never;
             header?: never;
@@ -4825,7 +4825,7 @@ export interface operations {
             };
         };
     };
-    api_v1_storefront_checkout_shipping_create: {
+    v1_storefront_checkout_shipping_create: {
         parameters: {
             query?: never;
             header?: never;
@@ -4850,7 +4850,7 @@ export interface operations {
             };
         };
     };
-    api_v1_storefront_checkout_start_create: {
+    v1_storefront_checkout_start_create: {
         parameters: {
             query?: never;
             header?: never;
@@ -4869,7 +4869,7 @@ export interface operations {
             };
         };
     };
-    api_v1_storefront_context_retrieve: {
+    v1_storefront_context_retrieve: {
         parameters: {
             query?: never;
             header?: never;
@@ -4888,7 +4888,7 @@ export interface operations {
             };
         };
     };
-    api_v1_storefront_inventory_availability_retrieve: {
+    v1_storefront_inventory_availability_retrieve: {
         parameters: {
             query?: {
                 /** @description Repeatable -- one or more ProductVariant ids. */
@@ -4912,7 +4912,7 @@ export interface operations {
             };
         };
     };
-    api_v1_storefront_payments_initiate_create: {
+    v1_storefront_payments_initiate_create: {
         parameters: {
             query?: never;
             header?: never;
@@ -4937,7 +4937,7 @@ export interface operations {
             };
         };
     };
-    api_v1_storefront_payments_providers_list: {
+    v1_storefront_payments_providers_list: {
         parameters: {
             query?: never;
             header?: never;
@@ -4956,7 +4956,7 @@ export interface operations {
             };
         };
     };
-    api_v1_storefront_products_list: {
+    v1_storefront_products_list: {
         parameters: {
             query?: {
                 /** @description Filter by category slug. */
@@ -4978,7 +4978,7 @@ export interface operations {
             };
         };
     };
-    api_v1_storefront_products_retrieve: {
+    v1_storefront_products_retrieve: {
         parameters: {
             query?: never;
             header?: never;
@@ -4999,7 +4999,7 @@ export interface operations {
             };
         };
     };
-    api_v1_webhooks_payments_create: {
+    v1_webhooks_payments_create: {
         parameters: {
             query?: never;
             header?: never;
