@@ -100,7 +100,14 @@ jobs:
         run: lint-imports --config pyproject.toml
 
       - name: bandit
-        run: bandit -q -r apps config -x "*/tests/*,*/migrations/*"
+        # Real CI failure found on the first actual run: this step never
+        # passed -c pyproject.toml, so it silently ignored this project's
+        # `skips = ["B101"]` (assert_used is an intentional, established
+        # pattern here -- see apps/notifications/tasks.py's asserts on
+        # invariants the caller already guarantees, not user input) --
+        # every local bandit run in this project's history used
+        # `-c pyproject.toml` explicitly and never caught this drift.
+        run: bandit -q -c pyproject.toml -r apps config -x "*/tests/*,*/migrations/*"
 
       - name: mypy
         run: mypy apps config
@@ -222,6 +229,21 @@ jobs:
       REDIS_URL: redis://localhost:6379/0
       DJANGO_SECRET_KEY: ci-e2e-secret-key
       NEXT_PUBLIC_BACKEND_PORT: "8000"
+      # Real bug found on the first actual CI run: dashboard/storefront's
+      # own package.json `start` scripts hardcode --port 3001/3000 (a
+      # CLI flag always wins over a PORT env var in Next.js), but this
+      # job's "Wait for servers" step and the spec's own defaults
+      # (frontend/e2e/tests/merchant-and-customer-journey.spec.ts) both
+      # assumed 4001/4000 -- ports nothing here ever actually listened
+      # on. Pointing the test at the real ports instead of trying to
+      # force the servers onto different ones.
+      E2E_DASHBOARD_URL: "http://localhost:3001"
+      E2E_STOREFRONT_PORT: "3000"
+      # The spec's BACKEND_PYTHON default is a Windows venv path
+      # (.venv/Scripts/python.exe) -- this runner has no project venv at
+      # all, dependencies were pip-installed straight into the runner's
+      # own Python (see "Install backend dependencies" below).
+      E2E_BACKEND_PYTHON: "python3"
     steps:
       - uses: actions/checkout@v4
 
@@ -281,7 +303,7 @@ jobs:
 
       - name: Wait for servers
         run: |
-          for url in http://localhost:8000/api/v1/auth/me http://localhost:4001 http://localhost:4000; do
+          for url in http://localhost:8000/api/v1/auth/me http://localhost:3001 http://localhost:3000; do
             for i in $(seq 1 30); do
               curl -sf "$url" -o /dev/null && break
               sleep 2
@@ -294,7 +316,12 @@ jobs:
 
       - name: Run E2E suite
         working-directory: frontend/e2e
-        run: npx playwright test
+        # Only the dev-server-based spec -- staging-smoke.spec.ts targets
+        # the Phase 19 Docker/Caddy staging stack (docker exec against a
+        # named container, real *.lvh.me TLS hosts) which doesn't exist
+        # in this job at all; it's exercised separately, manually,
+        # against docker-compose.staging.yml, not from GitHub Actions.
+        run: npx playwright test tests/merchant-and-customer-journey.spec.ts
 
       - name: Upload logs on failure
         if: failure()
