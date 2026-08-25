@@ -1,0 +1,363 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+defaults:
+  run:
+    working-directory: backend
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+
+    # Two real Postgres roles, exactly like docs/ARCHITECTURE.md section
+    # 2.3 describes -- CI must prove tenant isolation against the actual
+    # restricted role, not a superuser standing in for it.
+    services:
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_DB: saas_ci
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: ci_postgres_password
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U postgres -d saas_ci"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+      redis:
+        image: redis:7-alpine
+        ports: ["6379:6379"]
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+
+    env:
+      DJANGO_SETTINGS_MODULE: config.settings.test
+      DATABASE_URL: postgres://app_user:ci_app_user_password@localhost:5432/saas_ci
+      MIGRATOR_DATABASE_URL: postgres://app_migrator:ci_migrator_password@localhost:5432/saas_ci
+      PLATFORM_DATABASE_URL: postgres://app_platform_admin:ci_platform_admin_password@localhost:5432/saas_ci
+      REDIS_URL: redis://localhost:6379/0
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+          cache-dependency-path: backend/requirements-dev.txt
+
+      - name: Install dependencies
+        run: pip install -r requirements-dev.txt
+
+      - name: Create app_migrator / app_user / app_platform_admin Postgres roles
+        # Third role added for Phase 14's platform alias -- mirrors
+        # infra/postgres/init/01-roles.sh exactly (BYPASSRLS, narrow
+        # CONNECT/USAGE only; its real table grants come from
+        # apps/platform_admin/apps.py's own post_migrate hook, applied
+        # when `manage.py migrate` runs below). Without this role, every
+        # apps.platform_admin test (and the "platform" DB alias itself)
+        # fails to even connect in CI.
+        #
+        # A single `-c "...; ...; ..."` argument, not a `<<'SQL'` heredoc
+        # -- a real, pre-existing bug found while adding Phase 18's new
+        # jobs below: YAML's `|` block scalar requires every line,
+        # INCLUDING the closing delimiter, indented at or past the
+        # block's own level, while bash's plain (non-`<<-`) heredoc
+        # requires that closing delimiter at column 0 with zero
+        # indentation -- those two requirements are mutually exclusive,
+        # so the heredoc form here never actually parsed as valid YAML.
+        env:
+          PGPASSWORD: ci_postgres_password
+        run: >
+          psql -h localhost -U postgres -d saas_ci -v ON_ERROR_STOP=1 -c "
+          CREATE ROLE app_migrator LOGIN PASSWORD 'ci_migrator_password' CREATEDB;
+          CREATE ROLE app_user LOGIN PASSWORD 'ci_app_user_password' NOSUPERUSER NOCREATEDB NOCREATEROLE NOBYPASSRLS;
+          CREATE ROLE app_platform_admin LOGIN PASSWORD 'ci_platform_admin_password' BYPASSRLS NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION;
+          ALTER DATABASE saas_ci OWNER TO app_migrator;
+          GRANT CONNECT ON DATABASE saas_ci TO app_user;
+          GRANT USAGE ON SCHEMA public TO app_user;
+          ALTER DEFAULT PRIVILEGES FOR ROLE app_migrator IN SCHEMA public GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO app_user;
+          ALTER DEFAULT PRIVILEGES FOR ROLE app_migrator IN SCHEMA public GRANT USAGE, SELECT ON SEQUENCES TO app_user;
+          GRANT CONNECT ON DATABASE saas_ci TO app_platform_admin;
+          GRANT USAGE ON SCHEMA public TO app_platform_admin;
+          "
+
+      - name: ruff
+        run: ruff check .
+
+      - name: black --check
+        run: black --check .
+
+      - name: import-linter
+        run: lint-imports --config pyproject.toml
+
+      - name: bandit
+        run: bandit -q -r apps config -x "*/tests/*,*/migrations/*"
+
+      - name: mypy
+        run: mypy apps config
+
+      - name: pip-audit
+        run: pip-audit -r requirements.txt
+
+      - name: Check for missing migrations
+        run: python manage.py makemigrations --check --dry-run
+
+      - name: pytest (includes the tenant-isolation suite)
+        run: pytest --cov=apps --cov-report=term-missing --cov-fail-under=80
+
+      # docs/ARCHITECTURE.md section 14's quality gate is stricter than the
+      # single overall --cov-fail-under=80 above for these five apps
+      # specifically (>=90%) -- coverage.py has no built-in per-package
+      # threshold, so each gets its own report/check against the SAME
+      # .coverage data the pytest step above just produced (no re-run).
+      - name: Coverage gate -- orders/payments/inventory/tenancy/accounts >= 90%
+        run: |
+          for app in orders payments inventory tenancy accounts; do
+            echo "== $app =="
+            coverage report --include="apps/$app/*" --fail-under=90
+          done
+
+      - name: Verify OpenAPI schema matches committed snapshot
+        run: |
+          python manage.py spectacular --file /tmp/openapi.json
+          diff /tmp/openapi.json schema/openapi.json
+
+  gitleaks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # Phase 18: tsc + eslint + vitest across every app/package that has
+  # them, mirroring docs/ARCHITECTURE.md section 13.2's documented
+  # pipeline ("frontend (tsc+eslint+vitest)"). Each command here was run
+  # for real, locally, against this exact frontend tree -- unlike the
+  # e2e job below, this one is not speculative.
+  frontend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.22.0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "pnpm"
+          cache-dependency-path: frontend/pnpm-lock.yaml
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: typecheck
+        run: pnpm typecheck
+
+      - name: lint
+        run: pnpm lint
+
+      - name: test (Vitest -- fast, no live backend/servers needed)
+        run: pnpm test
+
+      - name: build
+        # Catches real regressions typecheck alone doesn't -- see
+        # docs/PHASE_16_REPORT.md's drf-spectacular enum-collision
+        # incident and Phase 17's Edge-runtime EvalError, both found only
+        # by an actual production build, never by tsc/eslint/dev mode.
+        run: pnpm build
+
+  # Best-effort scaffold, NOT verified against a real GitHub Actions run
+  # in this session (no CI access from here) -- unlike every other job in
+  # this file. The Playwright suite itself (frontend/e2e) IS real and
+  # passes locally against manually-started servers (see frontend/e2e/
+  # README.md); what's unverified is specifically this job's wiring
+  # (server startup timing/ports/env in an Actions runner). Treat a
+  # failure here as "check the wiring" before "the test is wrong."
+  e2e:
+    runs-on: ubuntu-latest
+    needs: [backend, frontend]
+    services:
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_DB: saas_e2e
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: ci_postgres_password
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U postgres -d saas_e2e"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+      redis:
+        image: redis:7-alpine
+        ports: ["6379:6379"]
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+    env:
+      DJANGO_SETTINGS_MODULE: config.settings.local
+      DATABASE_URL: postgres://app_user:ci_app_user_password@localhost:5432/saas_e2e
+      MIGRATOR_DATABASE_URL: postgres://app_migrator:ci_migrator_password@localhost:5432/saas_e2e
+      PLATFORM_DATABASE_URL: postgres://app_platform_admin:ci_platform_admin_password@localhost:5432/saas_e2e
+      REDIS_URL: redis://localhost:6379/0
+      DJANGO_SECRET_KEY: ci-e2e-secret-key
+      NEXT_PUBLIC_BACKEND_PORT: "8000"
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+          cache-dependency-path: backend/requirements-dev.txt
+      - name: Install backend dependencies
+        working-directory: backend
+        run: pip install -r requirements-dev.txt
+
+      - name: Create Postgres roles
+        env:
+          PGPASSWORD: ci_postgres_password
+        run: >
+          psql -h localhost -U postgres -d saas_e2e -v ON_ERROR_STOP=1 -c "
+          CREATE ROLE app_migrator LOGIN PASSWORD 'ci_migrator_password' CREATEDB;
+          CREATE ROLE app_user LOGIN PASSWORD 'ci_app_user_password' NOSUPERUSER NOCREATEDB NOCREATEROLE NOBYPASSRLS;
+          CREATE ROLE app_platform_admin LOGIN PASSWORD 'ci_platform_admin_password' BYPASSRLS NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION;
+          ALTER DATABASE saas_e2e OWNER TO app_migrator;
+          GRANT CONNECT ON DATABASE saas_e2e TO app_user;
+          GRANT USAGE ON SCHEMA public TO app_user;
+          ALTER DEFAULT PRIVILEGES FOR ROLE app_migrator IN SCHEMA public GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO app_user;
+          ALTER DEFAULT PRIVILEGES FOR ROLE app_migrator IN SCHEMA public GRANT USAGE, SELECT ON SEQUENCES TO app_user;
+          GRANT CONNECT ON DATABASE saas_e2e TO app_platform_admin;
+          GRANT USAGE ON SCHEMA public TO app_platform_admin;
+          "
+
+      - name: Migrate
+        working-directory: backend
+        run: python manage.py migrate --database=migrator
+
+      - name: Start Django backend
+        working-directory: backend
+        run: nohup python manage.py runserver 0.0.0.0:8000 > /tmp/django.log 2>&1 &
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.22.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "pnpm"
+          cache-dependency-path: frontend/pnpm-lock.yaml
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: pnpm install --frozen-lockfile
+
+      - name: Build and start dashboard + storefront (production mode)
+        working-directory: frontend
+        run: |
+          pnpm --filter @saas/dashboard build
+          pnpm --filter @saas/storefront build
+          nohup pnpm --filter @saas/dashboard start > /tmp/dashboard.log 2>&1 &
+          nohup pnpm --filter @saas/storefront start > /tmp/storefront.log 2>&1 &
+
+      - name: Wait for servers
+        run: |
+          for url in http://localhost:8000/api/v1/auth/me http://localhost:4001 http://localhost:4000; do
+            for i in $(seq 1 30); do
+              curl -sf "$url" -o /dev/null && break
+              sleep 2
+            done
+          done
+
+      - name: Install Playwright browsers
+        working-directory: frontend/e2e
+        run: npx playwright install --with-deps chromium
+
+      - name: Run E2E suite
+        working-directory: frontend/e2e
+        run: npx playwright test
+
+      - name: Upload logs on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-server-logs
+          path: |
+            /tmp/django.log
+            /tmp/dashboard.log
+            /tmp/storefront.log
+
+  # Phase 19: docs/ARCHITECTURE.md section 13's documented pipeline ends
+  # "... -> docker build -> trivy -> gitleaks -> deploy". Builds every
+  # real image this repo ships (backend's own Dockerfile, and the shared
+  # frontend/Dockerfile once per app) and scans each for known
+  # HIGH/CRITICAL CVEs -- these are the SAME Dockerfiles verified by
+  # actually running docker-compose.staging.yml in Phase 19, not a
+  # separate speculative build.
+  docker:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: .
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build backend image
+        run: docker build -t saas-backend:ci ./backend
+
+      - name: Scan backend image
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          image-ref: saas-backend:ci
+          severity: HIGH,CRITICAL
+          exit-code: "1"
+          ignore-unfixed: true
+
+      - name: Build frontend images
+        run: |
+          for app in storefront dashboard platform-admin; do
+            docker build -t "saas-$app:ci" --build-arg "APP=$app" ./frontend
+          done
+
+      - name: Scan storefront image
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          image-ref: saas-storefront:ci
+          severity: HIGH,CRITICAL
+          exit-code: "1"
+          ignore-unfixed: true
+
+      - name: Scan dashboard image
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          image-ref: saas-dashboard:ci
+          severity: HIGH,CRITICAL
+          exit-code: "1"
+          ignore-unfixed: true
+
+      - name: Scan platform-admin image
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          image-ref: saas-platform-admin:ci
+          severity: HIGH,CRITICAL
+          exit-code: "1"
+          ignore-unfixed: true

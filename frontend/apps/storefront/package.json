@@ -1,0 +1,43 @@
+{
+  "name": "@saas/storefront",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev --port 3000",
+    "build": "next build",
+    "start": "next start --port 3000",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@saas/api-client": "workspace:*",
+    "@saas/i18n": "workspace:*",
+    "@saas/theme-aurora": "workspace:*",
+    "@saas/ui": "workspace:*",
+    "@tanstack/react-query": "^5.62.0",
+    "lucide-react": "^0.469.0",
+    "next": "^15.1.0",
+    "next-intl": "^3.26.0",
+    "openapi-fetch": "^0.13.4",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "react-hook-form": "^7.54.0",
+    "zod": "^3.24.0",
+    "@hookform/resolvers": "^3.9.1"
+  },
+  "devDependencies": {
+    "@saas/config": "workspace:*",
+    "@types/node": "^22.10.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "@eslint/eslintrc": "^3.2.0",
+    "autoprefixer": "^10.4.20",
+    "eslint": "^9.17.0",
+    "eslint-config-next": "^15.1.0",
+    "postcss": "^8.4.49",
+    "tailwindcss": "^3.4.17",
+    "typescript": "^5.7.0",
+    "vitest": "^2.1.8"
+  }
+}

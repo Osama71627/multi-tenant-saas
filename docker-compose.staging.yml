@@ -1,0 +1,217 @@
+# Phase 19 staging topology -- separate from docker-compose.yml (local
+# dev: Django dev server, DEBUG=True, bind-mounted source). This file is
+# the real target of Phase 19's DoD: Edge/TLS -> Next.js apps -> Django
+# (gunicorn, production-hardened settings) -> Postgres -> Redis -> Celery
+# worker/beat, built from actual images, not bind-mounted source.
+#
+# Run as its own compose project so it never collides with the dev stack:
+#   docker compose -f docker-compose.staging.yml -p saas-staging \
+#     --env-file .env.staging up --build
+#
+# Secrets live in .env.staging (gitignored, see .env.staging.example for
+# the required keys) -- never in this file.
+
+services:
+  postgres:
+    image: postgres:18
+    environment:
+      POSTGRES_DB: saas_staging
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_SUPERUSER_PASSWORD}
+      APP_MIGRATOR_PASSWORD: ${APP_MIGRATOR_PASSWORD}
+      APP_USER_PASSWORD: ${APP_USER_PASSWORD}
+      APP_PLATFORM_ADMIN_PASSWORD: ${APP_PLATFORM_ADMIN_PASSWORD}
+    volumes:
+      # postgres:18's official image changed its data-directory convention
+      # (pg_ctlcluster-style, major-version-specific subdirs) -- the mount
+      # point is now the PARENT `/var/lib/postgresql`, not
+      # `/var/lib/postgresql/data` (that older path is real, root-caused
+      # via a failed container start, not copied blind from docs). See
+      # https://github.com/docker-library/postgres/pull/1259.
+      - staging_postgres_data:/var/lib/postgresql
+      - ./infra/postgres/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d saas_staging"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  mailhog:
+    image: mailhog/mailhog:v1.0.1
+    ports:
+      - "8025:8025" # web UI -- inspect mail the staging stack sends
+
+  migrate:
+    build: ./backend
+    image: saas-staging-backend:latest
+    command: python manage.py migrate --database=migrator
+    environment: &backend_env
+      DJANGO_SETTINGS_MODULE: config.settings.staging
+      DJANGO_SECRET_KEY: ${DJANGO_SECRET_KEY}
+      # 127.0.0.1 is real, not speculative -- the backend image's own
+      # Dockerfile HEALTHCHECK curls http://127.0.0.1:8000/healthz from
+      # inside the container, and without it in ALLOWED_HOSTS Django's
+      # own SecurityMiddleware rejects the healthcheck itself with
+      # DisallowedHost before it ever reaches the view.
+      DJANGO_ALLOWED_HOSTS: ".lvh.me,backend,localhost,127.0.0.1"
+      DJANGO_CSRF_TRUSTED_ORIGINS: "https://*.lvh.me,https://*.lvh.me:8443"
+      PLATFORM_ROOT_DOMAIN: "lvh.me"
+      DATABASE_URL: postgres://app_user:${APP_USER_PASSWORD}@postgres:5432/saas_staging
+      MIGRATOR_DATABASE_URL: postgres://app_migrator:${APP_MIGRATOR_PASSWORD}@postgres:5432/saas_staging
+      PLATFORM_DATABASE_URL: postgres://app_platform_admin:${APP_PLATFORM_ADMIN_PASSWORD}@postgres:5432/saas_staging
+      REDIS_URL: redis://redis:6379/0
+      EMAIL_HOST: mailhog
+      EMAIL_PORT: "1025"
+      EMAIL_HOST_USER: "staging"
+      EMAIL_HOST_PASSWORD: "staging"
+      PAYMENT_ENCRYPTION_KEY: ${PAYMENT_ENCRYPTION_KEY}
+      MFA_ENCRYPTION_KEY: ${MFA_ENCRYPTION_KEY}
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  backend:
+    build: ./backend
+    image: saas-staging-backend:latest
+    environment: *backend_env
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+
+  celery-worker:
+    build: ./backend
+    image: saas-staging-backend:latest
+    command: celery -A config worker --loglevel=info -Q default,webhooks,email
+    environment: *backend_env
+    # The image's own HEALTHCHECK curls :8000/healthz -- meaningless for a
+    # worker process that never serves HTTP (every worker container
+    # otherwise sits at "unhealthy" forever). `celery inspect ping` is the
+    # real liveness check for a worker.
+    healthcheck:
+      test: ["CMD-SHELL", "celery -A config inspect ping -d celery@$$HOSTNAME"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+
+  celery-sync-worker:
+    build: ./backend
+    image: saas-staging-backend:latest
+    command: celery -A config worker --loglevel=info -Q sync --concurrency=2
+    environment: *backend_env
+    healthcheck:
+      test: ["CMD-SHELL", "celery -A config inspect ping -d celery@$$HOSTNAME"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+
+  celery-beat:
+    build: ./backend
+    image: saas-staging-backend:latest
+    # Real failure found running this for real: celery beat's default
+    # schedule-file path is relative to the CWD ("celerybeat-schedule"),
+    # and writing there as the image's non-root `app` user hit "Permission
+    # denied" -- /tmp is always writable regardless of exactly how the
+    # image's ownership/CWD is set up, and beat's schedule file is
+    # disposable state anyway (see runbooks/celery-failure.md).
+    command: celery -A config beat --loglevel=info --schedule=/tmp/celerybeat-schedule
+    environment: *backend_env
+    # Beat only enqueues -- it isn't a worker `celery inspect ping` can
+    # reach, and it doesn't serve HTTP either, so the image's inherited
+    # :8000/healthz HEALTHCHECK is meaningless here. `docker compose ps`
+    # already shows Up/Exited for the container itself; see
+    # runbooks/celery-failure.md for how to confirm the scheduler is
+    # actually firing.
+    healthcheck:
+      disable: true
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+
+  storefront:
+    build:
+      context: ./frontend
+      args:
+        APP: storefront
+        # Must be a build ARG, not just runtime `environment:` below --
+        # see frontend/Dockerfile's comment on NEXT_PUBLIC_* inlining.
+        NEXT_PUBLIC_BACKEND_PORT: "8443"
+    environment:
+      PORT: "3000"
+      # Browser-side fetches (cart/checkout) use NEXT_PUBLIC_BACKEND_PORT
+      # -- same hostname the shopper is on, Caddy's TLS port. Server-side
+      # rendering (product pages) is a SEPARATE code path
+      # (lib/backend.ts's serverStorefrontApi) that talks to Django
+      # directly over the internal Docker network -- real bug found
+      # running this for real: without BACKEND_INTERNAL_URL, it defaulted
+      # to http://localhost:8000, which inside this container is nothing
+      # (each container has its own loopback), so every server-rendered
+      # storefront page 500'd.
+      NEXT_PUBLIC_BACKEND_PORT: "8443"
+      BACKEND_INTERNAL_URL: http://backend:8000
+    depends_on:
+      - backend
+
+  dashboard:
+    build:
+      context: ./frontend
+      args:
+        APP: dashboard
+    environment:
+      PORT: "3001"
+      BACKEND_INTERNAL_URL: http://backend:8000
+    depends_on:
+      - backend
+
+  platform-admin:
+    build:
+      context: ./frontend
+      args:
+        APP: platform-admin
+    environment:
+      PORT: "3002"
+      BACKEND_INTERNAL_URL: http://backend:8000
+    depends_on:
+      - backend
+
+  caddy:
+    image: caddy:2-alpine
+    ports:
+      - "443:443"
+      - "8443:8443"
+      - "80:80"
+    volumes:
+      - ./infra/caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - staging_caddy_data:/data
+    depends_on:
+      - storefront
+      - dashboard
+      - platform-admin
+      - backend
+
+volumes:
+  staging_postgres_data:
+  staging_caddy_data:

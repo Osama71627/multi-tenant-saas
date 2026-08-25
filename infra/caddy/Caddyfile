@@ -1,0 +1,66 @@
+# Phase 19 staging edge/TLS proxy.
+#
+# `*.lvh.me` is wildcard DNS to 127.0.0.1 (see docs/ARCHITECTURE.md and
+# this project's established local-tenancy convention) -- there is no
+# real external DNS zone to run ACME DNS-01 against, so this deliberately
+# uses Caddy's own internal CA (`tls internal`) to issue locally-trusted
+# certs on demand per hostname, instead of a real public ACME issuer.
+# That is the explicit Phase 19 boundary: wildcard/subdomain TLS and
+# routing genuinely work end-to-end here, but automated public
+# certificates for a merchant-supplied custom domain are NOT implemented
+# -- see runbooks/README.md "Custom domains" for what that would require.
+{
+	local_certs
+}
+
+# Host-based routing, most-specific first (Caddy already prefers exact
+# host matches over the wildcard block below, but the ordering here
+# mirrors that intent for anyone reading this file top to bottom).
+
+dashboard.lvh.me {
+	tls internal
+	reverse_proxy dashboard:3001 {
+		header_up Host {host}
+		header_up X-Forwarded-Proto {scheme}
+		header_up X-Forwarded-For {remote}
+	}
+}
+
+admin.lvh.me {
+	tls internal
+	reverse_proxy platform-admin:3002 {
+		header_up Host {host}
+		header_up X-Forwarded-Proto {scheme}
+		header_up X-Forwarded-For {remote}
+	}
+}
+
+# Any other *.lvh.me host (a per-store subdomain) -> the storefront. The
+# storefront app resolves which store it's serving from this same Host
+# header on the Django side (apps/stores/middleware.py) -- Caddy's job
+# here is only to forward it unmodified, never to make a tenancy
+# decision itself.
+*.lvh.me {
+	tls internal
+	reverse_proxy storefront:3000 {
+		header_up Host {host}
+		header_up X-Forwarded-Proto {scheme}
+		header_up X-Forwarded-For {remote}
+	}
+}
+
+# Dedicated TLS port for direct browser -> Django calls. The storefront's
+# browser-side fetches hit the backend directly on the SAME hostname, a
+# different port (frontend/apps/storefront/middleware.ts's `connect-src`
+# / lib/backend.ts's `browserBackendOrigin()`) -- this is that port,
+# staging's TLS-terminated equivalent of local dev's plain-HTTP :8000.
+# Matches any *.lvh.me host (storefront, dashboard, or admin hosts alike)
+# since Django's own ALLOWED_HOSTS/tenant resolution is the real gate.
+*.lvh.me:8443 {
+	tls internal
+	reverse_proxy backend:8000 {
+		header_up Host {host}
+		header_up X-Forwarded-Proto {scheme}
+		header_up X-Forwarded-For {remote}
+	}
+}

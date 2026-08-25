@@ -1,0 +1,14 @@
+{
+  "name": "@saas/e2e",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test:e2e": "playwright test"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.49.1",
+    "@types/node": "^22.10.0",
+    "typescript": "^5.7.0"
+  }
+}

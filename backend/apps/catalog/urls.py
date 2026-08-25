@@ -1,0 +1,61 @@
+from django.urls import path
+
+from apps.catalog import views
+
+urlpatterns = [
+    path(
+        "dashboard/stores/<uuid:store_id>/products",
+        views.ProductListCreateView.as_view(),
+        name="catalog-product-list-create",
+    ),
+    path(
+        "dashboard/stores/<uuid:store_id>/products/<uuid:product_id>",
+        views.ProductDetailView.as_view(),
+        name="catalog-product-detail",
+    ),
+    path(
+        "dashboard/stores/<uuid:store_id>/products/<uuid:product_id>/options",
+        views.ProductOptionListCreateView.as_view(),
+        name="catalog-product-option-list-create",
+    ),
+    path(
+        "dashboard/stores/<uuid:store_id>/products/<uuid:product_id>/options/<uuid:option_id>/values",
+        views.ProductOptionValueListCreateView.as_view(),
+        name="catalog-product-option-value-list-create",
+    ),
+    path(
+        "dashboard/stores/<uuid:store_id>/products/<uuid:product_id>/variants",
+        views.ProductVariantListCreateView.as_view(),
+        name="catalog-product-variant-list-create",
+    ),
+    path(
+        "dashboard/stores/<uuid:store_id>/products/<uuid:product_id>/variants/<uuid:variant_id>",
+        views.ProductVariantDetailView.as_view(),
+        name="catalog-product-variant-detail",
+    ),
+    path(
+        "dashboard/stores/<uuid:store_id>/categories",
+        views.CategoryListCreateView.as_view(),
+        name="catalog-category-list-create",
+    ),
+    path(
+        "dashboard/stores/<uuid:store_id>/tags",
+        views.TagListCreateView.as_view(),
+        name="catalog-tag-list-create",
+    ),
+    path(
+        "storefront/products",
+        views.StorefrontProductListView.as_view(),
+        name="storefront-product-list",
+    ),
+    path(
+        "storefront/products/<slug:slug>",
+        views.StorefrontProductDetailView.as_view(),
+        name="storefront-product-detail",
+    ),
+    path(
+        "storefront/categories",
+        views.StorefrontCategoryListView.as_view(),
+        name="storefront-category-list",
+    ),
+]

@@ -1,0 +1,123 @@
+# Local development environment. See docs/ARCHITECTURE.md section 13.1.
+#
+# NOTE (transparency, not a formality): this file has been authored to
+# the same standard as the rest of Phase 1, but has NOT been executed in
+# this session -- Docker Desktop isn't installed on the machine this was
+# built on (verified: `docker --version` failed, `Get-Command docker`
+# empty). Local Postgres/Redis for this phase's real, passing test run
+# were instead provisioned directly in WSL2 -- see docs/PHASE_1_REPORT.md
+# for exactly what was and wasn't verified. Please run
+# `docker compose up --build` and confirm before relying on this file;
+# flag anything that doesn't come up cleanly.
+#
+# Host ports are intentionally non-default (15432/16379) because this
+# dev machine already has other native Postgres/Redis instances on the
+# standard ports -- adjust freely for your own machine.
+
+services:
+  postgres:
+    image: postgres:18
+    environment:
+      POSTGRES_DB: saas_dev
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_SUPERUSER_PASSWORD:-devpass_postgres}
+      APP_MIGRATOR_PASSWORD: ${APP_MIGRATOR_PASSWORD:-devpass_migrator}
+      APP_USER_PASSWORD: ${APP_USER_PASSWORD:-devpass_appuser}
+    volumes:
+      # postgres:18's official image now expects the mount at the PARENT
+      # `/var/lib/postgresql` (major-version-specific subdirs underneath),
+      # not `/var/lib/postgresql/data` -- verified by actually running
+      # this stack in Phase 19 (this file's own top-of-file note said it
+      # had never been executed; it has now, and this was the first real
+      # bug that surfaced). See https://github.com/docker-library/postgres/pull/1259.
+      - postgres_data:/var/lib/postgresql
+      - ./infra/postgres/init:/docker-entrypoint-initdb.d:ro
+    ports:
+      - "15432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d saas_dev"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "16379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  backend:
+    build: ./backend
+    command: >
+      sh -c "python manage.py migrate --database=migrator &&
+             python manage.py runserver 0.0.0.0:8000"
+    volumes:
+      - ./backend:/app
+    ports:
+      - "8000:8000"
+    environment: &backend_env
+      DJANGO_SETTINGS_MODULE: config.settings.local
+      DJANGO_SECRET_KEY: ${DJANGO_SECRET_KEY:-dev-only-insecure-key-change-me}
+      DJANGO_DEBUG: "True"
+      DJANGO_ALLOWED_HOSTS: "*"
+      DATABASE_URL: postgres://app_user:${APP_USER_PASSWORD:-devpass_appuser}@postgres:5432/saas_dev
+      MIGRATOR_DATABASE_URL: postgres://app_migrator:${APP_MIGRATOR_PASSWORD:-devpass_migrator}@postgres:5432/saas_dev
+      PLATFORM_DATABASE_URL: postgres://app_platform_admin:${APP_PLATFORM_ADMIN_PASSWORD:-devpass_platformadmin}@postgres:5432/saas_dev
+      REDIS_URL: redis://redis:6379/0
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  celery-worker:
+    build: ./backend
+    command: celery -A config worker --loglevel=info -Q default,webhooks,email
+    volumes:
+      - ./backend:/app
+    environment: *backend_env
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  celery-sync-worker:
+    build: ./backend
+    # Isolated queue for supplier sync (Phase 15+) so a slow/misbehaving
+    # supplier integration can never starve order/webhook processing --
+    # see docs/ARCHITECTURE.md section 13.1.
+    command: celery -A config worker --loglevel=info -Q sync --concurrency=2
+    volumes:
+      - ./backend:/app
+    environment: *backend_env
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  celery-beat:
+    build: ./backend
+    command: celery -A config beat --loglevel=info
+    volumes:
+      - ./backend:/app
+    environment: *backend_env
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  mailhog:
+    image: mailhog/mailhog:v1.0.1
+    ports:
+      - "8025:8025" # web UI
+      - "1025:1025" # SMTP
+
+volumes:
+  postgres_data:

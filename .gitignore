@@ -1,0 +1,49 @@
+# Environment
+.env
+.env.*
+!.env.example
+!.env.staging.example
+
+# Phase 19: local pg_dump backups (infra/postgres/backup.sh) -- real data, never committed
+backups/
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+.import_linter_cache/
+htmlcov/
+.coverage
+.coverage.*
+
+# Django
+backend/staticfiles/
+backend/media/
+*.log
+db.sqlite3
+
+# Node / Next.js (frontend lands Phase 12+)
+node_modules/
+.next/
+out/
+frontend/**/dist/
+.turbo/
+*.tsbuildinfo
+
+# Playwright (frontend/e2e) -- traces/screenshots from local runs, never committed
+test-results/
+playwright-report/
+
+# Editors / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Docker
+*.pid

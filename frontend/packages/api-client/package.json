@@ -1,0 +1,22 @@
+{
+  "name": "@saas/api-client",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./types": "./src/generated/schema.d.ts"
+  },
+  "scripts": {
+    "generate": "node scripts/generate.mjs",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "openapi-fetch": "^0.13.4"
+  },
+  "devDependencies": {
+    "@saas/config": "workspace:*",
+    "openapi-typescript": "^7.5.0",
+    "typescript": "^5.7.0"
+  }
+}

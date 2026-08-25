@@ -1,0 +1,399 @@
+# This is NOT an installable/distributable package -- it's a Django
+# project (apps/ + config/ run in place via manage.py, same as any
+# standard Django layout). The [project] table exists only so tools
+# (ruff, black, mypy, pytest, bandit, import-linter) have one place to
+# read config from. Install actual dependencies from requirements.txt /
+# requirements-dev.txt (`pip install -r requirements-dev.txt`), not
+# `pip install -e .` -- editable-installing a multi-top-level-package
+# flat layout like this one is not what setuptools is for.
+[project]
+name = "saas-backend"
+version = "0.1.0"
+description = "Multi-Tenant SaaS E-Commerce platform backend (config only, not a package)"
+requires-python = ">=3.12,<3.13"
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+extend-exclude = ["migrations"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "DJ", "UP", "S"]
+ignore = ["S101"]
+
+[tool.ruff.lint.per-file-ignores]
+"**/tests/**" = ["S101", "S106"]
+"**/migrations/**" = ["E501"]
+
+[tool.black]
+line-length = 100
+target-version = ["py312"]
+extend-exclude = "migrations"
+
+[tool.mypy]
+python_version = "3.12"
+plugins = ["mypy_django_plugin.main", "mypy_drf_plugin.main"]
+ignore_missing_imports = true
+exclude = ["migrations"]
+
+[tool.django-stubs]
+django_settings_module = "config.settings.test"
+
+[tool.pytest.ini_options]
+DJANGO_SETTINGS_MODULE = "config.settings.test"
+python_files = ["test_*.py"]
+addopts = "-ra --strict-markers"
+testpaths = ["apps", "tests"]
+
+[tool.coverage.run]
+source = ["apps"]
+omit = ["*/migrations/*", "*/tests/*"]
+
+[tool.bandit]
+# Real bug found in Phase 20: without excluding .venv, `bandit -r .` was
+# recursing into the entire installed dependency tree (278MB, 5824 .py
+# files) -- minutes of scanning vendored code that was never the point,
+# and a real false-positive risk (bandit flagging bandit's own source).
+exclude_dirs = ["tests", "migrations", ".venv", "venv"]
+skips = ["B101"]
+
+# NOTE: import-linter silently no-ops a contract that names a module
+# which doesn't exist yet (logs "Module 'apps.catalog' does not exist"
+# and exits 0) instead of failing -- so contracts only ever list apps
+# that exist as of THIS phase. Phase 4+ (catalog, orders, payments, ...)
+# MUST extend these contracts as each app lands, per
+# docs/ARCHITECTURE.md section 3's dependency rule -- adding an app
+# without adding/extending its contract silently loses the check.
+[tool.importlinter]
+root_package = "apps"
+
+[[tool.importlinter.contracts]]
+name = "Layering: tenancy/core have no domain dependencies"
+type = "forbidden"
+source_modules = ["apps.core", "apps.tenancy"]
+forbidden_modules = [
+    "apps.accounts",
+    "apps.subscriptions",
+    "apps.stores",
+    "apps.catalog",
+    "apps.inventory",
+    "apps.pricing",
+    "apps.carts",
+    "apps.shipping",
+    "apps.orders",
+    "apps.payments",
+    "apps.notifications",
+    "apps.themes",
+]
+# Test-only exception, same reasoning as the accounts/stores one below:
+# apps/tenancy/tests/test_rls_null_safety.py needs one real
+# TenantOwnedModel to prove the RLS null-safety fix against actual
+# PostgreSQL -- apps.tenancy's production code (models.py, db.py,
+# context.py, celery.py, rls.py) still has zero imports of any domain app.
+ignore_imports = ["apps.tenancy.tests.* -> apps.accounts.models"]
+
+[[tool.importlinter.contracts]]
+name = "Layering: accounts does not depend on stores, subscriptions, or catalog"
+type = "forbidden"
+source_modules = ["apps.accounts"]
+forbidden_modules = ["apps.stores", "apps.subscriptions", "apps.catalog", "apps.inventory", "apps.pricing", "apps.carts", "apps.shipping", "apps.orders", "apps.payments", "apps.notifications", "apps.themes"]
+# Test-only exception: accounts/tests/test_store_membership.py needs a
+# real Store row to exercise StoreMembership (a TenantOwnedModel with a
+# FK to stores.Store) against actual RLS -- that's legitimate
+# integration-test setup, not a production layering violation. The
+# contract's real job is keeping apps/accounts/*.py (the actual runtime
+# code) import-free of apps.stores, which this does not weaken: check
+# `apps.accounts.models` itself has zero apps.stores imports (its
+# StoreMembership.store FK resolves via TenantOwnedModel's lazy string
+# reference, "stores.Store", never a Python import).
+ignore_imports = ["apps.accounts.tests.* -> apps.stores.models"]
+
+[[tool.importlinter.contracts]]
+name = "Layering: subscriptions does not depend on catalog"
+type = "forbidden"
+source_modules = ["apps.subscriptions"]
+forbidden_modules = ["apps.catalog", "apps.inventory", "apps.pricing", "apps.carts", "apps.shipping", "apps.orders", "apps.payments", "apps.notifications", "apps.themes"]
+# Phase 10 decision: apps.subscriptions sits ABOVE apps.stores, same
+# direction as every other domain app (catalog/orders/payments) --
+# `apps.subscriptions.tasks`/`entitlements` genuinely need `Store` (the
+# lifecycle sweep scans `Store.objects`, `require_active_store` compares
+# `Store.Status`), so "subscriptions never imports stores" would have
+# been a fiction. The store-CREATION integration runs the other way
+# around WITHOUT apps.stores importing apps.subscriptions: `create_store`
+# calls `apps.stores.hooks.run_post_creation_hooks`, a registry apps.stores
+# itself owns (see apps/stores/hooks.py) -- apps.subscriptions registers
+# `provision_trial_subscription` into it from its own `AppConfig.ready()`,
+# the same "lower layer defines a registry, higher layer registers into
+# it" shape `entitlements.register_live_counter` already uses for
+# apps.catalog. Every domain app above subscriptions (catalog, orders,
+# ...) may call `apps.subscriptions.entitlements` for enforcement; this
+# contract only guards the reverse.
+
+[[tool.importlinter.contracts]]
+name = "Layering: stores does not depend on subscriptions, themes, or catalog"
+type = "forbidden"
+source_modules = ["apps.stores"]
+forbidden_modules = ["apps.subscriptions", "apps.catalog", "apps.inventory", "apps.pricing", "apps.carts", "apps.shipping", "apps.orders", "apps.payments", "apps.notifications", "apps.themes"]
+# Dependency direction per docs/ARCHITECTURE.md section 3: catalog ->
+# stores -> accounts -> tenancy -> core, extended in Phase 10 as
+# subscriptions -> stores (see the contract above for why apps.stores
+# itself stays import-free of apps.subscriptions, via the hooks registry
+# in apps/stores/hooks.py rather than a direct call). Phase 12's
+# Theme/Template decision (approved Option B) extends the SAME hooks
+# registry for apps.themes -- `theme_preset_id` flows through
+# `run_post_creation_hooks(**extra_context)` as an opaque value,
+# `apps.stores` never imports `apps.themes` to interpret it (see
+# apps/stores/hooks.py's module docstring).
+# Test-only exception, same reasoning as the accounts/subscriptions
+# contracts above: apps/stores/tests/test_store_creation_atomicity.py
+# and test_store_theme_atomicity.py need real Subscription/
+# NoDefaultTrialPlanError/StoreThemeConfig/ThemePresetNotFoundError
+# access to prove the rollback invariant end-to-end -- apps/stores/*.py's
+# actual runtime code (services.py, mixins.py, hooks.py) stays
+# import-free of apps.subscriptions/apps.themes.
+ignore_imports = [
+    "apps.stores.tests.test_store_creation_atomicity -> apps.subscriptions.models",
+    "apps.stores.tests.test_store_creation_atomicity -> apps.subscriptions.services",
+    "apps.stores.tests.test_store_theme_atomicity -> apps.themes.models",
+]
+
+[[tool.importlinter.contracts]]
+name = "Layering: catalog does not depend on inventory, pricing, or carts"
+type = "forbidden"
+source_modules = ["apps.catalog"]
+forbidden_modules = ["apps.inventory", "apps.pricing", "apps.carts", "apps.shipping", "apps.orders", "apps.payments", "apps.notifications", "apps.themes"]
+# Phase 5 decision (docs/PHASE_5_REPORT.md): inventory -> catalog ->
+# stores -> ... -- apps.inventory.services imports
+# apps.catalog.models.ProductVariant (the allowed direction: Inventory
+# references "what can be sold", never the reverse). ProductVariant
+# itself carries zero stock fields and must never import apps.inventory
+# to get any -- that boundary is the whole point of Phase 4/5's split.
+# Same direction for pricing/carts (Phase 6): both reference
+# apps.catalog, never the other way.
+
+[[tool.importlinter.contracts]]
+name = "Layering: inventory does not depend on pricing or carts"
+type = "forbidden"
+source_modules = ["apps.inventory"]
+forbidden_modules = ["apps.pricing", "apps.carts", "apps.shipping", "apps.orders", "apps.payments", "apps.notifications", "apps.themes"]
+# apps.orders (Phase 8, approved decision 7): StockReservation.reference
+# is a formatted opaque string ("order:<uuid>"), never a real FK to
+# Order -- precisely so apps.inventory never needs to import
+# apps.orders. This contract enforces that choice, not just documents it.
+# apps.payments (Phase 9) never touches inventory directly either --
+# reservation fulfill/release happens through apps.orders.services'
+# confirm_order/cancel_order, which apps.payments calls.
+
+[[tool.importlinter.contracts]]
+name = "Layering: pricing does not depend on catalog, inventory, or carts"
+type = "forbidden"
+source_modules = ["apps.pricing"]
+forbidden_modules = ["apps.catalog", "apps.inventory", "apps.carts", "apps.shipping", "apps.orders", "apps.payments", "apps.notifications", "apps.themes"]
+# Phase 6 decision (docs/PHASE_6_REPORT.md): apps.pricing is a pure,
+# store-scoped calculation layer (TaxRate/Coupon/calculator) with no
+# per-product rules -- apps.carts consumes it, never the reverse, and it
+# has no reason to know about catalog or inventory at all.
+
+[[tool.importlinter.contracts]]
+name = "Layering: carts does not depend on inventory"
+type = "forbidden"
+source_modules = ["apps.carts"]
+forbidden_modules = ["apps.inventory", "apps.orders", "apps.payments", "apps.notifications", "apps.themes"]
+# Phase 6 scope decision: Cart does not check stock availability (the
+# original spec reserves that reverification explicitly for Checkout,
+# which doesn't exist yet) -- keeping this boundary enforced now avoids
+# it creeping in as an unreviewed side effect of some future edit.
+# apps.orders (Phase 8) is the one allowed to import apps.carts, never
+# the reverse -- same shape as the shipping contract below.
+
+[[tool.importlinter.contracts]]
+name = "Layering: shipping does not depend on carts, pricing, inventory, orders, payments, or notifications"
+type = "forbidden"
+source_modules = ["apps.shipping"]
+forbidden_modules = ["apps.carts", "apps.pricing", "apps.inventory", "apps.orders", "apps.payments", "apps.notifications", "apps.themes"]
+# Phase 7 decision (docs/PHASE_7_REPORT.md): apps.shipping depends only
+# on apps.catalog (ProductVariant.weight_grams) and apps.stores (Store),
+# same layer as pricing/inventory -- never on carts. apps.carts is the
+# one allowed to import apps.shipping (for the storefront shipping-quote
+# endpoint), never the reverse.
+
+[[tool.importlinter.contracts]]
+name = "Layering: orders does not depend on payments or notifications"
+type = "forbidden"
+source_modules = ["apps.orders"]
+forbidden_modules = ["apps.payments", "apps.notifications", "apps.themes"]
+# Approved Phase 9 decision: apps.payments depends on apps.orders, never
+# the reverse. Phase 8's checkout stays fully independent of payment
+# concerns -- checkout/complete creates an Order in pending_payment with
+# zero knowledge that apps.payments exists. apps.orders.services DOES
+# expose confirm_order/cancel_order for apps.payments to call, but that's
+# apps.payments importing apps.orders (the allowed direction), not this.
+#
+# Phase 11 decision: `apps.notifications` sits at the TOP of the layering
+# (docs/ARCHITECTURE.md section 3's dependency diagram), and Django
+# Signals are explicitly forbidden in critical paths (order/payment/
+# inventory -- docs/ARCHITECTURE.md line 107). `confirm_order` therefore
+# never imports or calls anything notification-specific: it only calls
+# `apps.core.events.emit_domain_event` (a lower-layer, domain-agnostic
+# utility) to write a durable `EventLog` row and schedule an async,
+# STRING-NAMED Celery task via `config.settings.DOMAIN_EVENT_CONSUMER_TASKS`
+# -- no Python import of `apps.notifications` anywhere in `apps.orders`,
+# enforced by this contract, not just by convention.
+
+[[tool.importlinter.contracts]]
+name = "Layering: payments does not depend on notifications"
+type = "forbidden"
+source_modules = ["apps.payments"]
+forbidden_modules = ["apps.notifications", "apps.themes"]
+# Same reasoning as the orders contract above -- apps.payments never
+# needs to know apps.notifications exists either; both consume the
+# generic `apps.core.events.emit_domain_event` primitive.
+
+[[tool.importlinter.contracts]]
+name = "Layering: nothing below platform_admin may import it"
+type = "forbidden"
+source_modules = [
+    "apps.core",
+    "apps.tenancy",
+    "apps.accounts",
+    "apps.subscriptions",
+    "apps.stores",
+    "apps.catalog",
+    "apps.inventory",
+    "apps.pricing",
+    "apps.carts",
+    "apps.shipping",
+    "apps.orders",
+    "apps.payments",
+    "apps.notifications",
+    "apps.themes",
+]
+forbidden_modules = ["apps.platform_admin"]
+# Phase 14 approved decision: apps.platform_admin owns the ONLY code path
+# that ever opens the `platform` DB alias (app_platform_admin, BYPASSRLS
+# -- apps/platform_admin/services.py). No other app has any legitimate
+# reason to import it, and this contract makes that structural, not just
+# a convention. NOTE, precisely scoped: this proves no domain app can
+# reach apps.platform_admin's Python code via import -- it does NOT by
+# itself prove nobody calls `.using("platform")` some other way (raw SQL,
+# a dynamically-looked-up connection, etc.); that is what
+# apps/platform_admin/tests/test_platform_alias_containment.py's literal
+# source-scan test is for. Import-linter proves the import graph, not
+# database-alias usage.
+
+[[tool.importlinter.contracts]]
+name = "Layering: platform_admin only depends on its actual approved scope"
+type = "forbidden"
+source_modules = ["apps.platform_admin"]
+forbidden_modules = [
+    "apps.catalog",
+    "apps.inventory",
+    "apps.pricing",
+    "apps.carts",
+    "apps.shipping",
+    "apps.payments",
+    "apps.notifications",
+    "apps.themes",
+]
+# apps.platform_admin's Phase 14 DoD is "manage stores and plans" --
+# accounts (users), stores, and subscriptions (plans) are its original
+# scope. Phase 15 deliberately extends this by ONE app, apps.orders
+# (platform-wide order-count/revenue aggregation, reusing the approved
+# privileged platform boundary rather than opening a second cross-tenant
+# code path in a new app -- see apps/analytics/services.py's docstring).
+# Forbidding the rest here means any future PR that imports, say,
+# apps.payments into apps.platform_admin (widening its privileged DB-role
+# blast radius further) fails CI instead of silently landing.
+
+[[tool.importlinter.contracts]]
+name = "Layering: nothing below analytics may import it"
+type = "forbidden"
+source_modules = [
+    "apps.core",
+    "apps.tenancy",
+    "apps.accounts",
+    "apps.subscriptions",
+    "apps.stores",
+    "apps.catalog",
+    "apps.inventory",
+    "apps.pricing",
+    "apps.carts",
+    "apps.shipping",
+    "apps.orders",
+    "apps.payments",
+    "apps.notifications",
+    "apps.themes",
+    "apps.platform_admin",
+]
+forbidden_modules = ["apps.analytics"]
+# Phase 15 -- same shape as the platform_admin containment contract.
+
+[[tool.importlinter.contracts]]
+name = "Layering: analytics only depends on its actual Phase 15 scope"
+type = "forbidden"
+source_modules = ["apps.analytics"]
+forbidden_modules = [
+    "apps.catalog",
+    "apps.inventory",
+    "apps.pricing",
+    "apps.carts",
+    "apps.shipping",
+    "apps.payments",
+    "apps.notifications",
+    "apps.themes",
+    "apps.platform_admin",
+]
+# apps.analytics is the merchant-facing (per-store, ordinary RLS) half
+# of Phase 15 -- MVP scope is order counts/revenue/a daily time series,
+# so apps.orders (+ apps.stores, already allowed transitively) is its
+# whole dependency. Widening this later (e.g. to include apps.payments)
+# is a deliberate, reviewable one-line change, not a silent import.
+
+[[tool.importlinter.contracts]]
+name = "Layering: nothing below suppliers may import it"
+type = "forbidden"
+source_modules = [
+    "apps.core",
+    "apps.tenancy",
+    "apps.accounts",
+    "apps.subscriptions",
+    "apps.stores",
+    "apps.catalog",
+    "apps.inventory",
+    "apps.pricing",
+    "apps.carts",
+    "apps.shipping",
+    "apps.orders",
+    "apps.payments",
+    "apps.notifications",
+    "apps.themes",
+    "apps.platform_admin",
+    "apps.analytics",
+]
+forbidden_modules = ["apps.suppliers"]
+# Phase 16 -- same shape as the platform_admin/analytics containment
+# contracts.
+
+[[tool.importlinter.contracts]]
+name = "Layering: suppliers only depends on its actual Phase 16 scope"
+type = "forbidden"
+source_modules = ["apps.suppliers"]
+forbidden_modules = [
+    "apps.pricing",
+    "apps.carts",
+    "apps.shipping",
+    "apps.orders",
+    "apps.payments",
+    "apps.notifications",
+    "apps.themes",
+    "apps.platform_admin",
+    "apps.analytics",
+]
+# apps.suppliers' Phase 16 MVP scope is the two-stage import path
+# (Supplier -> staged SupplierProduct -> explicit promotion to a real
+# Product/Variant + optional stock receipt), so apps.catalog
+# (create_product) and apps.inventory (adjust_stock) are its whole
+# dependency -- never apps.orders/apps.payments, since the
+# purchase-order/procurement workflow (SupplierOrder, placing/tracking
+# a re-order WITH a supplier) is deliberately deferred out of this
+# phase, not half-built. See apps/suppliers/models.py's module docstring.

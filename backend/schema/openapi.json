@@ -1,0 +1,5047 @@
+openapi: 3.0.3
+info:
+  title: Multi-Tenant SaaS E-Commerce API
+  version: 1.0.0
+paths:
+  /api/v1/auth/email/verify/confirm:
+    post:
+      operationId: api_v1_auth_email_verify_confirm_create
+      tags:
+      - api
+      security:
+      - platformJwtAuth: []
+      - {}
+      responses:
+        '200':
+          description: No response body
+  /api/v1/auth/email/verify/resend:
+    post:
+      operationId: api_v1_auth_email_verify_resend_create
+      tags:
+      - api
+      security:
+      - platformJwtAuth: []
+      responses:
+        '200':
+          description: No response body
+  /api/v1/auth/login:
+    post:
+      operationId: api_v1_auth_login_create
+      description: |-
+        Wraps SimpleJWT's TokenObtainPairView with the brute-force lockout
+        from apps.accounts.lockout -- locked on (email, IP), see that
+        module's docstring for why.
+
+        Phase 17: a platform-staff account (`is_platform_staff=True`) never
+        gets a JWT from this endpoint directly -- see `_platform_staff_login`
+        below and `apps.accounts.mfa_services`' module docstring for the full
+        two-step design. Ordinary accounts are completely unaffected and keep
+        the exact single-step flow this view always had.
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PlatformTokenObtainPairRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PlatformTokenObtainPairRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PlatformTokenObtainPairRequest'
+        required: true
+      security:
+      - {}
+      responses:
+        '200':
+          description: No response body
+  /api/v1/auth/logout:
+    post:
+      operationId: api_v1_auth_logout_create
+      tags:
+      - api
+      security:
+      - platformJwtAuth: []
+      responses:
+        '200':
+          description: No response body
+  /api/v1/auth/me:
+    get:
+      operationId: api_v1_auth_me_retrieve
+      tags:
+      - api
+      security:
+      - platformJwtAuth: []
+      responses:
+        '200':
+          description: No response body
+  /api/v1/auth/mfa/enroll/confirm:
+    post:
+      operationId: api_v1_auth_mfa_enroll_confirm_create
+      description: |-
+        Second step of enrollment: {challenge_token, code} -> confirms the
+        pending device, issues one-time recovery codes (returned RAW here,
+        exactly once), and completes login with a full JWT (mfa=True).
+      tags:
+      - api
+      security:
+      - platformJwtAuth: []
+      - {}
+      responses:
+        '200':
+          description: No response body
+  /api/v1/auth/mfa/enroll/start:
+    post:
+      operationId: api_v1_auth_mfa_enroll_start_create
+      description: |-
+        First step of enrollment (only reachable with a valid challenge from
+        a login that returned `state: mfa_setup_required`): generates a
+        pending TOTP secret and returns it for manual entry into an
+        authenticator app, plus the equivalent `otpauth://` URI.
+      tags:
+      - api
+      security:
+      - platformJwtAuth: []
+      - {}
+      responses:
+        '200':
+          description: No response body
+  /api/v1/auth/mfa/verify:
+    post:
+      operationId: api_v1_auth_mfa_verify_create
+      description: |-
+        Second step of platform-staff login for an already-enrolled device:
+        {challenge_token, code} -> full JWT (mfa=True). `code` may be a 6-digit
+        TOTP code or a recovery code (see `_looks_like_recovery_code`).
+      tags:
+      - api
+      security:
+      - platformJwtAuth: []
+      - {}
+      responses:
+        '200':
+          description: No response body
+  /api/v1/auth/password/reset:
+    post:
+      operationId: api_v1_auth_password_reset_create
+      tags:
+      - api
+      security:
+      - platformJwtAuth: []
+      - {}
+      responses:
+        '200':
+          description: No response body
+  /api/v1/auth/password/reset/confirm:
+    post:
+      operationId: api_v1_auth_password_reset_confirm_create
+      tags:
+      - api
+      security:
+      - platformJwtAuth: []
+      - {}
+      responses:
+        '200':
+          description: No response body
+  /api/v1/auth/refresh:
+    post:
+      operationId: api_v1_auth_refresh_create
+      description: |-
+        Takes a refresh type JSON web token and returns an access type JSON web
+        token if the refresh token is valid.
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PlatformTokenRefreshRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PlatformTokenRefreshRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PlatformTokenRefreshRequest'
+        required: true
+      security:
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlatformTokenRefresh'
+          description: ''
+  /api/v1/auth/register:
+    post:
+      operationId: api_v1_auth_register_create
+      tags:
+      - api
+      security:
+      - platformJwtAuth: []
+      - {}
+      responses:
+        '200':
+          description: No response body
+  /api/v1/dashboard/stores:
+    get:
+      operationId: api_v1_dashboard_stores_list
+      description: |-
+        `GET /api/v1/dashboard/stores` -- the store switcher's data source
+        (docs/ARCHITECTURE.md section 7.3): stores the current user has an
+        ACTIVE membership in; see apps.stores.services.list_stores_for_user
+        for why this is a legitimate cross-tenant read. `POST` is the
+        existing store-provisioning endpoint, unchanged.
+      tags:
+      - api
+      security:
+      - platformJwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/StoreListItem'
+          description: ''
+    post:
+      operationId: api_v1_dashboard_stores_create
+      description: |-
+        `GET /api/v1/dashboard/stores` -- the store switcher's data source
+        (docs/ARCHITECTURE.md section 7.3): stores the current user has an
+        ACTIVE membership in; see apps.stores.services.list_stores_for_user
+        for why this is a legitimate cross-tenant read. `POST` is the
+        existing store-provisioning endpoint, unchanged.
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateStoreRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/CreateStoreRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/CreateStoreRequest'
+        required: true
+      security:
+      - platformJwtAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StoreDetail'
+          description: ''
+  /api/v1/dashboard/stores/{store_id}:
+    get:
+      operationId: api_v1_dashboard_stores_retrieve
+      description: '404 vs 403 semantics, and why: apps/stores/mixins.py:StoreScopedAPIView.'
+      parameters:
+      - in: path
+        name: store_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - api
+      security:
+      - platformJwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StoreDetail'
+          description: ''
+    patch:
+      operationId: api_v1_dashboard_stores_partial_update
+      description: '404 vs 403 semantics, and why: apps/stores/mixins.py:StoreScopedAPIView.'
+      parameters:
+      - in: path
+        name: store_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedUpdateStoreRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedUpdateStoreRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedUpdateStoreRequest'
+      security:
+      - platformJwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StoreDetail'
+          description: ''
+  /api/v1/dashboard/stores/{store_id}/analytics/overview:
+    get:
+      operationId: api_v1_dashboard_stores_analytics_overview_retrieve
+      description: |-
+        Base class for any `/api/v1/dashboard/stores/<uuid:store_id>/...`
+        endpoint. Relies on `TenantMiddleware` having already resolved the
+        path's `store_id` into `request.tenant_store` (path-based, Host
+        header ignored -- apps/stores/middleware.py).
+
+        404 vs 403 distinguished on purpose (same reasoning as Phase 3's
+        StoreDetailView, docs/PHASE_3_REPORT.md): a store's existence isn't
+        secret (its RLS SELECT policy is intentionally open), but catalog
+        resources INSIDE it are fully RLS-restricted with no such exception
+        -- so once past this gate, an ordinary tenant-scoped query for a
+        resource that doesn't exist in this store naturally 404s via
+        `DoesNotExist`, with no separate leak to worry about.
+
+        Sets `self.store` for subclasses to use.
+      parameters:
+      - in: path
+        name: store_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - api
+      security:
+      - platformJwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/v1/dashboard/stores/{store_id}/categories:
+    get:
+      operationId: api_v1_dashboard_stores_categories_retrieve
+      description: |-
+        Base class for any `/api/v1/dashboard/stores/<uuid:store_id>/...`
+        endpoint. Relies on `TenantMiddleware` having already resolved the
+        path's `store_id` into `request.tenant_store` (path-based, Host
+        header ignored -- apps/stores/middleware.py).
+
+        404 vs 403 distinguished on purpose (same reasoning as Phase 3's
+        StoreDetailView, docs/PHASE_3_REPORT.md): a store's existence isn't
+        secret (its RLS SELECT policy is intentionally open), but catalog
+        resources INSIDE it are fully RLS-restricted with no such exception
+        -- so once past this gate, an ordinary tenant-scoped query for a
+        resource that doesn't exist in this store naturally 404s via
+        `DoesNotExist`, with no separate leak to worry about.
+
+        Sets `self.store` for subclasses to use.
+      parameters:
+      - in: path
+        name: store_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - api
+      security:
+      - platformJwtAuth: []
+      responses:
+        '200':
+          description: No response body
+    post:
+      operationId: api_v1_dashboard_stores_categories_create
+      description: |-
+        Base class for any `/api/v1/dashboard/stores/<uuid:store_id>/...`
+        endpoint. Relies on `TenantMiddleware` having already resolved the
+        path's `store_id` into `request.tenant_store` (path-based, Host
+        header ignored -- apps/stores/middleware.py).
+
+        404 vs 403 distinguished on purpose (same reasoning as Phase 3's
+        StoreDetailView, docs/PHASE_3_REPORT.md): a store's existence isn't
+        secret (its RLS SELECT policy is intentionally open), but catalog
+        resources INSIDE it are fully RLS-restricted with no such exception
+        -- so once past this gate, an ordinary tenant-scoped query for a
+        resource that doesn't exist in this store naturally 404s via
+        `DoesNotExist`, with no separate leak to worry about.
+
+        Sets `self.store` for subclasses to use.
+      parameters:
+      - in: path
+        name: store_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - api
+      security:
+      - platformJwtAuth: []
+      responses:
+        '200':
+          description: No response body
+  /api/v1/dashboard/stores/{store_id}/inventory/adjust:
+    post:
+      operationId: api_v1_dashboard_stores_inventory_adjust_create
+      description: |-
+        Base class for any `/api/v1/dashboard/stores/<uuid:store_id>/...`
+        endpoint. Relies on `TenantMiddleware` having already resolved the
+        path's `store_id` into `request.tenant_store` (path-based, Host
+        header ignored -- apps/stores/middleware.py).
+
+        404 vs 403 distinguished on purpose (same reasoning as Phase 3's
+        StoreDetailView, docs/PHASE_3_REPORT.md): a store's existence isn't
+        secret (its RLS SELECT policy is intentionally open), but catalog
+        resources INSIDE it are fully RLS-restricted with no such exception
+        -- so once past this gate, an ordinary tenant-scoped query for a
+        resource that doesn't exist in this store naturally 404s via
+        `DoesNotExist`, with no separate leak to worry about.
+
+        Sets `self.store` for subclasses to use.
+      parameters:
+      - in: path
+        name: store_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AdjustStockRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/AdjustStockRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/AdjustStockRequest'
+        required: true
+      security:
+      - platformJwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StockBalance'
+          description: ''
+  /api/v1/dashboard/stores/{store_id}/inventory/balances:
+    get:
+      operationId: api_v1_dashboard_stores_inventory_balances_list
+      description: |-
+        Base class for any `/api/v1/dashboard/stores/<uuid:store_id>/...`
+        endpoint. Relies on `TenantMiddleware` having already resolved the
+        path's `store_id` into `request.tenant_store` (path-based, Host
+        header ignored -- apps/stores/middleware.py).
+
+        404 vs 403 distinguished on purpose (same reasoning as Phase 3's
+        StoreDetailView, docs/PHASE_3_REPORT.md): a store's existence isn't
+        secret (its RLS SELECT policy is intentionally open), but catalog
+        resources INSIDE it are fully RLS-restricted with no such exception
+        -- so once past this gate, an ordinary tenant-scoped query for a
+        resource that doesn't exist in this store naturally 404s via
+        `DoesNotExist`, with no separate leak to worry about.
+
+        Sets `self.store` for subclasses to use.
+      parameters:
+      - in: path
+        name: store_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - api
+      security:
+      - platformJwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/StockBalance'
+          description: ''
+  /api/v1/dashboard/stores/{store_id}/inventory/locations:
+    get:
+      operationId: api_v1_dashboard_stores_inventory_locations_list
+      description: |-
+        Base class for any `/api/v1/dashboard/stores/<uuid:store_id>/...`
+        endpoint. Relies on `TenantMiddleware` having already resolved the
+        path's `store_id` into `request.tenant_store` (path-based, Host
+        header ignored -- apps/stores/middleware.py).
+
+        404 vs 403 distinguished on purpose (same reasoning as Phase 3's
+        StoreDetailView, docs/PHASE_3_REPORT.md): a store's existence isn't
+        secret (its RLS SELECT policy is intentionally open), but catalog
+        resources INSIDE it are fully RLS-restricted with no such exception
+        -- so once past this gate, an ordinary tenant-scoped query for a
+        resource that doesn't exist in this store naturally 404s via
+        `DoesNotExist`, with no separate leak to worry about.
+
+        Sets `self.store` for subclasses to use.
+      parameters:
+      - in: path
+        name: store_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - api
+      security:
+      - platformJwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/StockLocation'
+          description: ''
+    post:
+      operationId: api_v1_dashboard_stores_inventory_locations_create
+      description: |-
+        Base class for any `/api/v1/dashboard/stores/<uuid:store_id>/...`
+        endpoint. Relies on `TenantMiddleware` having already resolved the
+        path's `store_id` into `request.tenant_store` (path-based, Host
+        header ignored -- apps/stores/middleware.py).
+
+        404 vs 403 distinguished on purpose (same reasoning as Phase 3's
+        StoreDetailView, docs/PHASE_3_REPORT.md): a store's existence isn't
+        secret (its RLS SELECT policy is intentionally open), but catalog
+        resources INSIDE it are fully RLS-restricted with no such exception
+        -- so once past this gate, an ordinary tenant-scoped query for a
+        resource that doesn't exist in this store naturally 404s via
+        `DoesNotExist`, with no separate leak to worry about.
+
+        Sets `self.store` for subclasses to use.
+      parameters:
+      - in: path
+        name: store_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StockLocationRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/StockLocationRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/StockLocationRequest'
+        required: true
+      security:
+      - platformJwtAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StockLocation'
+          description: ''
+  /api/v1/dashboard/stores/{store_id}/inventory/movements:
+    get:
+      operationId: api_v1_dashboard_stores_inventory_movements_retrieve
+      description: |-
+        Base class for any `/api/v1/dashboard/stores/<uuid:store_id>/...`
+        endpoint. Relies on `TenantMiddleware` having already resolved the
+        path's `store_id` into `request.tenant_store` (path-based, Host
+        header ignored -- apps/stores/middleware.py).
+
+        404 vs 403 distinguished on purpose (same reasoning as Phase 3's
+        StoreDetailView, docs/PHASE_3_REPORT.md): a store's existence isn't
+        secret (its RLS SELECT policy is intentionally open), but catalog
+        resources INSIDE it are fully RLS-restricted with no such exception
+        -- so once past this gate, an ordinary tenant-scoped query for a
+        resource that doesn't exist in this store naturally 404s via
+        `DoesNotExist`, with no separate leak to worry about.
+
+        Sets `self.store` for subclasses to use.
+      parameters:
+      - in: path
+        name: store_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - api
+      security:
+      - platformJwtAuth: []
+      responses:
+        '200':
+          description: No response body
+  /api/v1/dashboard/stores/{store_id}/orders:
+    get:
+      operationId: api_v1_dashboard_stores_orders_list
+      description: |-
+        Base class for any `/api/v1/dashboard/stores/<uuid:store_id>/...`
+        endpoint. Relies on `TenantMiddleware` having already resolved the
+        path's `store_id` into `request.tenant_store` (path-based, Host
+        header ignored -- apps/stores/middleware.py).
+
+        404 vs 403 distinguished on purpose (same reasoning as Phase 3's
+        StoreDetailView, docs/PHASE_3_REPORT.md): a store's existence isn't
+        secret (its RLS SELECT policy is intentionally open), but catalog
+        resources INSIDE it are fully RLS-restricted with no such exception
+        -- so once past this gate, an ordinary tenant-scoped query for a
+        resource that doesn't exist in this store naturally 404s via
+        `DoesNotExist`, with no separate leak to worry about.
+
+        Sets `self.store` for subclasses to use.
+      parameters:
+      - in: path
+        name: store_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - api
+      security:
+      - platformJwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/OrderList'
+          description: ''
+  /api/v1/dashboard/stores/{store_id}/orders/{order_id}:
+    get:
+      operationId: api_v1_dashboard_stores_orders_retrieve
+      description: |-
+        Base class for any `/api/v1/dashboard/stores/<uuid:store_id>/...`
+        endpoint. Relies on `TenantMiddleware` having already resolved the
+        path's `store_id` into `request.tenant_store` (path-based, Host
+        header ignored -- apps/stores/middleware.py).
+
+        404 vs 403 distinguished on purpose (same reasoning as Phase 3's
+        StoreDetailView, docs/PHASE_3_REPORT.md): a store's existence isn't
+        secret (its RLS SELECT policy is intentionally open), but catalog
+        resources INSIDE it are fully RLS-restricted with no such exception
+        -- so once past this gate, an ordinary tenant-scoped query for a
+        resource that doesn't exist in this store naturally 404s via
+        `DoesNotExist`, with no separate leak to worry about.
+
+        Sets `self.store` for subclasses to use.
+      parameters:
+      - in: path
+        name: order_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      - in: path
+        name: store_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - api
+      security:
+      - platformJwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Order'
+          description: ''
+  /api/v1/dashboard/stores/{store_id}/payment-intents/{payment_intent_id}/capture-cod:
+    post:
+      operationId: api_v1_dashboard_stores_payment_intents_capture_cod_create
+      description: |-
+        Base class for any `/api/v1/dashboard/stores/<uuid:store_id>/...`
+        endpoint. Relies on `TenantMiddleware` having already resolved the
+        path's `store_id` into `request.tenant_store` (path-based, Host
+        header ignored -- apps/stores/middleware.py).
+
+        404 vs 403 distinguished on purpose (same reasoning as Phase 3's
+        StoreDetailView, docs/PHASE_3_REPORT.md): a store's existence isn't
+        secret (its RLS SELECT policy is intentionally open), but catalog
+        resources INSIDE it are fully RLS-restricted with no such exception
+        -- so once past this gate, an ordinary tenant-scoped query for a
+        resource that doesn't exist in this store naturally 404s via
+        `DoesNotExist`, with no separate leak to worry about.
+
+        Sets `self.store` for subclasses to use.
+      parameters:
+      - in: path
+        name: payment_intent_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      - in: path
+        name: store_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - api
+      security:
+      - platformJwtAuth: []
+      responses:
+        '200':
+          description: No response body
+  /api/v1/dashboard/stores/{store_id}/payments/providers:
+    get:
+      operationId: api_v1_dashboard_stores_payments_providers_list
+      description: |-
+        Base class for any `/api/v1/dashboard/stores/<uuid:store_id>/...`
+        endpoint. Relies on `TenantMiddleware` having already resolved the
+        path's `store_id` into `request.tenant_store` (path-based, Host
+        header ignored -- apps/stores/middleware.py).
+
+        404 vs 403 distinguished on purpose (same reasoning as Phase 3's
+        StoreDetailView, docs/PHASE_3_REPORT.md): a store's existence isn't
+        secret (its RLS SELECT policy is intentionally open), but catalog
+        resources INSIDE it are fully RLS-restricted with no such exception
+        -- so once past this gate, an ordinary tenant-scoped query for a
+        resource that doesn't exist in this store naturally 404s via
+        `DoesNotExist`, with no separate leak to worry about.
+
+        Sets `self.store` for subclasses to use.
+      parameters:
+      - in: path
+        name: store_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - api
+      security:
+      - platformJwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/StoreProviderConfig'
+          description: ''
+    post:
+      operationId: api_v1_dashboard_stores_payments_providers_create
+      description: |-
+        Base class for any `/api/v1/dashboard/stores/<uuid:store_id>/...`
+        endpoint. Relies on `TenantMiddleware` having already resolved the
+        path's `store_id` into `request.tenant_store` (path-based, Host
+        header ignored -- apps/stores/middleware.py).
+
+        404 vs 403 distinguished on purpose (same reasoning as Phase 3's
+        StoreDetailView, docs/PHASE_3_REPORT.md): a store's existence isn't
+        secret (its RLS SELECT policy is intentionally open), but catalog
+        resources INSIDE it are fully RLS-restricted with no such exception
+        -- so once past this gate, an ordinary tenant-scoped query for a
+        resource that doesn't exist in this store naturally 404s via
+        `DoesNotExist`, with no separate leak to worry about.
+
+        Sets `self.store` for subclasses to use.
+      parameters:
+      - in: path
+        name: store_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StoreProviderConfigRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/StoreProviderConfigRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/StoreProviderConfigRequest'
+        required: true
+      security:
+      - platformJwtAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StoreProviderConfig'
+          description: ''
+  /api/v1/dashboard/stores/{store_id}/pricing/coupons:
+    get:
+      operationId: api_v1_dashboard_stores_pricing_coupons_retrieve
+      description: |-
+        Base class for any `/api/v1/dashboard/stores/<uuid:store_id>/...`
+        endpoint. Relies on `TenantMiddleware` having already resolved the
+        path's `store_id` into `request.tenant_store` (path-based, Host
+        header ignored -- apps/stores/middleware.py).
+
+        404 vs 403 distinguished on purpose (same reasoning as Phase 3's
+        StoreDetailView, docs/PHASE_3_REPORT.md): a store's existence isn't
+        secret (its RLS SELECT policy is intentionally open), but catalog
+        resources INSIDE it are fully RLS-restricted with no such exception
+        -- so once past this gate, an ordinary tenant-scoped query for a
+        resource that doesn't exist in this store naturally 404s via
+        `DoesNotExist`, with no separate leak to worry about.
+
+        Sets `self.store` for subclasses to use.
+      parameters:
+      - in: path
+        name: store_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - api
+      security:
+      - platformJwtAuth: []
+      responses:
+        '200':
+          description: No response body
+    post:
+      operationId: api_v1_dashboard_stores_pricing_coupons_create
+      description: |-
+        Base class for any `/api/v1/dashboard/stores/<uuid:store_id>/...`
+        endpoint. Relies on `TenantMiddleware` having already resolved the
+        path's `store_id` into `request.tenant_store` (path-based, Host
+        header ignored -- apps/stores/middleware.py).
+
+        404 vs 403 distinguished on purpose (same reasoning as Phase 3's
+        StoreDetailView, docs/PHASE_3_REPORT.md): a store's existence isn't
+        secret (its RLS SELECT policy is intentionally open), but catalog
+        resources INSIDE it are fully RLS-restricted with no such exception
+        -- so once past this gate, an ordinary tenant-scoped query for a
+        resource that doesn't exist in this store naturally 404s via
+        `DoesNotExist`, with no separate leak to worry about.
+
+        Sets `self.store` for subclasses to use.
+      parameters:
+      - in: path
+        name: store_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - api
+      security:
+      - platformJwtAuth: []
+      responses:
+        '200':
+          description: No response body
+  /api/v1/dashboard/stores/{store_id}/pricing/tax-rates:
+    get:
+      operationId: api_v1_dashboard_stores_pricing_tax_rates_retrieve
+      description: |-
+        Base class for any `/api/v1/dashboard/stores/<uuid:store_id>/...`
+        endpoint. Relies on `TenantMiddleware` having already resolved the
+        path's `store_id` into `request.tenant_store` (path-based, Host
+        header ignored -- apps/stores/middleware.py).
+
+        404 vs 403 distinguished on purpose (same reasoning as Phase 3's
+        StoreDetailView, docs/PHASE_3_REPORT.md): a store's existence isn't
+        secret (its RLS SELECT policy is intentionally open), but catalog
+        resources INSIDE it are fully RLS-restricted with no such exception
+        -- so once past this gate, an ordinary tenant-scoped query for a
+        resource that doesn't exist in this store naturally 404s via
+        `DoesNotExist`, with no separate leak to worry about.
+
+        Sets `self.store` for subclasses to use.
+      parameters:
+      - in: path
+        name: store_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - api
+      security:
+      - platformJwtAuth: []
+      responses:
+        '200':
+          description: No response body
+    post:
+      operationId: api_v1_dashboard_stores_pricing_tax_rates_create
+      description: |-
+        Base class for any `/api/v1/dashboard/stores/<uuid:store_id>/...`
+        endpoint. Relies on `TenantMiddleware` having already resolved the
+        path's `store_id` into `request.tenant_store` (path-based, Host
+        header ignored -- apps/stores/middleware.py).
+
+        404 vs 403 distinguished on purpose (same reasoning as Phase 3's
+        StoreDetailView, docs/PHASE_3_REPORT.md): a store's existence isn't
+        secret (its RLS SELECT policy is intentionally open), but catalog
+        resources INSIDE it are fully RLS-restricted with no such exception
+        -- so once past this gate, an ordinary tenant-scoped query for a
+        resource that doesn't exist in this store naturally 404s via
+        `DoesNotExist`, with no separate leak to worry about.
+
+        Sets `self.store` for subclasses to use.
+      parameters:
+      - in: path
+        name: store_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - api
+      security:
+      - platformJwtAuth: []
+      responses:
+        '200':
+          description: No response body
+  /api/v1/dashboard/stores/{store_id}/products:
+    get:
+      operationId: api_v1_dashboard_stores_products_list
+      description: |-
+        Base class for any `/api/v1/dashboard/stores/<uuid:store_id>/...`
+        endpoint. Relies on `TenantMiddleware` having already resolved the
+        path's `store_id` into `request.tenant_store` (path-based, Host
+        header ignored -- apps/stores/middleware.py).
+
+        404 vs 403 distinguished on purpose (same reasoning as Phase 3's
+        StoreDetailView, docs/PHASE_3_REPORT.md): a store's existence isn't
+        secret (its RLS SELECT policy is intentionally open), but catalog
+        resources INSIDE it are fully RLS-restricted with no such exception
+        -- so once past this gate, an ordinary tenant-scoped query for a
+        resource that doesn't exist in this store naturally 404s via
+        `DoesNotExist`, with no separate leak to worry about.
+
+        Sets `self.store` for subclasses to use.
+      parameters:
+      - in: path
+        name: store_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - api
+      security:
+      - platformJwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Product'
+          description: ''
+    post:
+      operationId: api_v1_dashboard_stores_products_create
+      description: |-
+        Base class for any `/api/v1/dashboard/stores/<uuid:store_id>/...`
+        endpoint. Relies on `TenantMiddleware` having already resolved the
+        path's `store_id` into `request.tenant_store` (path-based, Host
+        header ignored -- apps/stores/middleware.py).
+
+        404 vs 403 distinguished on purpose (same reasoning as Phase 3's
+        StoreDetailView, docs/PHASE_3_REPORT.md): a store's existence isn't
+        secret (its RLS SELECT policy is intentionally open), but catalog
+        resources INSIDE it are fully RLS-restricted with no such exception
+        -- so once past this gate, an ordinary tenant-scoped query for a
+        resource that doesn't exist in this store naturally 404s via
+        `DoesNotExist`, with no separate leak to worry about.
+
+        Sets `self.store` for subclasses to use.
+      parameters:
+      - in: path
+        name: store_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateProductRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/CreateProductRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/CreateProductRequest'
+        required: true
+      security:
+      - platformJwtAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Product'
+          description: ''
+  /api/v1/dashboard/stores/{store_id}/products/{product_id}:
+    get:
+      operationId: api_v1_dashboard_stores_products_retrieve
+      description: |-
+        Base class for any `/api/v1/dashboard/stores/<uuid:store_id>/...`
+        endpoint. Relies on `TenantMiddleware` having already resolved the
+        path's `store_id` into `request.tenant_store` (path-based, Host
+        header ignored -- apps/stores/middleware.py).
+
+        404 vs 403 distinguished on purpose (same reasoning as Phase 3's
+        StoreDetailView, docs/PHASE_3_REPORT.md): a store's existence isn't
+        secret (its RLS SELECT policy is intentionally open), but catalog
+        resources INSIDE it are fully RLS-restricted with no such exception
+        -- so once past this gate, an ordinary tenant-scoped query for a
+        resource that doesn't exist in this store naturally 404s via
+        `DoesNotExist`, with no separate leak to worry about.
+
+        Sets `self.store` for subclasses to use.
+      parameters:
+      - in: path
+        name: product_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      - in: path
+        name: store_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - api
+      security:
+      - platformJwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Product'
+          description: ''
+    patch:
+      operationId: api_v1_dashboard_stores_products_partial_update
+      description: |-
+        Base class for any `/api/v1/dashboard/stores/<uuid:store_id>/...`
+        endpoint. Relies on `TenantMiddleware` having already resolved the
+        path's `store_id` into `request.tenant_store` (path-based, Host
+        header ignored -- apps/stores/middleware.py).
+
+        404 vs 403 distinguished on purpose (same reasoning as Phase 3's
+        StoreDetailView, docs/PHASE_3_REPORT.md): a store's existence isn't
+        secret (its RLS SELECT policy is intentionally open), but catalog
+        resources INSIDE it are fully RLS-restricted with no such exception
+        -- so once past this gate, an ordinary tenant-scoped query for a
+        resource that doesn't exist in this store naturally 404s via
+        `DoesNotExist`, with no separate leak to worry about.
+
+        Sets `self.store` for subclasses to use.
+      parameters:
+      - in: path
+        name: product_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      - in: path
+        name: store_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedUpdateProductRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedUpdateProductRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedUpdateProductRequest'
+      security:
+      - platformJwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Product'
+          description: ''
+    delete:
+      operationId: api_v1_dashboard_stores_products_destroy
+      description: |-
+        Base class for any `/api/v1/dashboard/stores/<uuid:store_id>/...`
+        endpoint. Relies on `TenantMiddleware` having already resolved the
+        path's `store_id` into `request.tenant_store` (path-based, Host
+        header ignored -- apps/stores/middleware.py).
+
+        404 vs 403 distinguished on purpose (same reasoning as Phase 3's
+        StoreDetailView, docs/PHASE_3_REPORT.md): a store's existence isn't
+        secret (its RLS SELECT policy is intentionally open), but catalog
+        resources INSIDE it are fully RLS-restricted with no such exception
+        -- so once past this gate, an ordinary tenant-scoped query for a
+        resource that doesn't exist in this store naturally 404s via
+        `DoesNotExist`, with no separate leak to worry about.
+
+        Sets `self.store` for subclasses to use.
+      parameters:
+      - in: path
+        name: product_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      - in: path
+        name: store_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - api
+      security:
+      - platformJwtAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/v1/dashboard/stores/{store_id}/products/{product_id}/options:
+    post:
+      operationId: api_v1_dashboard_stores_products_options_create
+      description: |-
+        Base class for any `/api/v1/dashboard/stores/<uuid:store_id>/...`
+        endpoint. Relies on `TenantMiddleware` having already resolved the
+        path's `store_id` into `request.tenant_store` (path-based, Host
+        header ignored -- apps/stores/middleware.py).
+
+        404 vs 403 distinguished on purpose (same reasoning as Phase 3's
+        StoreDetailView, docs/PHASE_3_REPORT.md): a store's existence isn't
+        secret (its RLS SELECT policy is intentionally open), but catalog
+        resources INSIDE it are fully RLS-restricted with no such exception
+        -- so once past this gate, an ordinary tenant-scoped query for a
+        resource that doesn't exist in this store naturally 404s via
+        `DoesNotExist`, with no separate leak to worry about.
+
+        Sets `self.store` for subclasses to use.
+      parameters:
+      - in: path
+        name: product_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      - in: path
+        name: store_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - api
+      security:
+      - platformJwtAuth: []
+      responses:
+        '200':
+          description: No response body
+  /api/v1/dashboard/stores/{store_id}/products/{product_id}/options/{option_id}/values:
+    post:
+      operationId: api_v1_dashboard_stores_products_options_values_create
+      description: |-
+        Base class for any `/api/v1/dashboard/stores/<uuid:store_id>/...`
+        endpoint. Relies on `TenantMiddleware` having already resolved the
+        path's `store_id` into `request.tenant_store` (path-based, Host
+        header ignored -- apps/stores/middleware.py).
+
+        404 vs 403 distinguished on purpose (same reasoning as Phase 3's
+        StoreDetailView, docs/PHASE_3_REPORT.md): a store's existence isn't
+        secret (its RLS SELECT policy is intentionally open), but catalog
+        resources INSIDE it are fully RLS-restricted with no such exception
+        -- so once past this gate, an ordinary tenant-scoped query for a
+        resource that doesn't exist in this store naturally 404s via
+        `DoesNotExist`, with no separate leak to worry about.
+
+        Sets `self.store` for subclasses to use.
+      parameters:
+      - in: path
+        name: option_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      - in: path
+        name: product_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      - in: path
+        name: store_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - api
+      security:
+      - platformJwtAuth: []
+      responses:
+        '200':
+          description: No response body
+  /api/v1/dashboard/stores/{store_id}/products/{product_id}/variants:
+    post:
+      operationId: api_v1_dashboard_stores_products_variants_create
+      description: |-
+        Base class for any `/api/v1/dashboard/stores/<uuid:store_id>/...`
+        endpoint. Relies on `TenantMiddleware` having already resolved the
+        path's `store_id` into `request.tenant_store` (path-based, Host
+        header ignored -- apps/stores/middleware.py).
+
+        404 vs 403 distinguished on purpose (same reasoning as Phase 3's
+        StoreDetailView, docs/PHASE_3_REPORT.md): a store's existence isn't
+        secret (its RLS SELECT policy is intentionally open), but catalog
+        resources INSIDE it are fully RLS-restricted with no such exception
+        -- so once past this gate, an ordinary tenant-scoped query for a
+        resource that doesn't exist in this store naturally 404s via
+        `DoesNotExist`, with no separate leak to worry about.
+
+        Sets `self.store` for subclasses to use.
+      parameters:
+      - in: path
+        name: product_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      - in: path
+        name: store_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - api
+      security:
+      - platformJwtAuth: []
+      responses:
+        '200':
+          description: No response body
+  /api/v1/dashboard/stores/{store_id}/products/{product_id}/variants/{variant_id}:
+    delete:
+      operationId: api_v1_dashboard_stores_products_variants_destroy
+      description: |-
+        Base class for any `/api/v1/dashboard/stores/<uuid:store_id>/...`
+        endpoint. Relies on `TenantMiddleware` having already resolved the
+        path's `store_id` into `request.tenant_store` (path-based, Host
+        header ignored -- apps/stores/middleware.py).
+
+        404 vs 403 distinguished on purpose (same reasoning as Phase 3's
+        StoreDetailView, docs/PHASE_3_REPORT.md): a store's existence isn't
+        secret (its RLS SELECT policy is intentionally open), but catalog
+        resources INSIDE it are fully RLS-restricted with no such exception
+        -- so once past this gate, an ordinary tenant-scoped query for a
+        resource that doesn't exist in this store naturally 404s via
+        `DoesNotExist`, with no separate leak to worry about.
+
+        Sets `self.store` for subclasses to use.
+      parameters:
+      - in: path
+        name: product_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      - in: path
+        name: store_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      - in: path
+        name: variant_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - api
+      security:
+      - platformJwtAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/v1/dashboard/stores/{store_id}/shipping/methods/{method_id}/rates:
+    get:
+      operationId: api_v1_dashboard_stores_shipping_methods_rates_list
+      description: |-
+        Base class for any `/api/v1/dashboard/stores/<uuid:store_id>/...`
+        endpoint. Relies on `TenantMiddleware` having already resolved the
+        path's `store_id` into `request.tenant_store` (path-based, Host
+        header ignored -- apps/stores/middleware.py).
+
+        404 vs 403 distinguished on purpose (same reasoning as Phase 3's
+        StoreDetailView, docs/PHASE_3_REPORT.md): a store's existence isn't
+        secret (its RLS SELECT policy is intentionally open), but catalog
+        resources INSIDE it are fully RLS-restricted with no such exception
+        -- so once past this gate, an ordinary tenant-scoped query for a
+        resource that doesn't exist in this store naturally 404s via
+        `DoesNotExist`, with no separate leak to worry about.
+
+        Sets `self.store` for subclasses to use.
+      parameters:
+      - in: path
+        name: method_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      - in: path
+        name: store_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - api
+      security:
+      - platformJwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ShippingRate'
+          description: ''
+    post:
+      operationId: api_v1_dashboard_stores_shipping_methods_rates_create
+      description: |-
+        Base class for any `/api/v1/dashboard/stores/<uuid:store_id>/...`
+        endpoint. Relies on `TenantMiddleware` having already resolved the
+        path's `store_id` into `request.tenant_store` (path-based, Host
+        header ignored -- apps/stores/middleware.py).
+
+        404 vs 403 distinguished on purpose (same reasoning as Phase 3's
+        StoreDetailView, docs/PHASE_3_REPORT.md): a store's existence isn't
+        secret (its RLS SELECT policy is intentionally open), but catalog
+        resources INSIDE it are fully RLS-restricted with no such exception
+        -- so once past this gate, an ordinary tenant-scoped query for a
+        resource that doesn't exist in this store naturally 404s via
+        `DoesNotExist`, with no separate leak to worry about.
+
+        Sets `self.store` for subclasses to use.
+      parameters:
+      - in: path
+        name: method_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      - in: path
+        name: store_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ShippingRateRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ShippingRateRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ShippingRateRequest'
+        required: true
+      security:
+      - platformJwtAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ShippingRate'
+          description: ''
+  /api/v1/dashboard/stores/{store_id}/shipping/zones:
+    get:
+      operationId: api_v1_dashboard_stores_shipping_zones_list
+      description: |-
+        Base class for any `/api/v1/dashboard/stores/<uuid:store_id>/...`
+        endpoint. Relies on `TenantMiddleware` having already resolved the
+        path's `store_id` into `request.tenant_store` (path-based, Host
+        header ignored -- apps/stores/middleware.py).
+
+        404 vs 403 distinguished on purpose (same reasoning as Phase 3's
+        StoreDetailView, docs/PHASE_3_REPORT.md): a store's existence isn't
+        secret (its RLS SELECT policy is intentionally open), but catalog
+        resources INSIDE it are fully RLS-restricted with no such exception
+        -- so once past this gate, an ordinary tenant-scoped query for a
+        resource that doesn't exist in this store naturally 404s via
+        `DoesNotExist`, with no separate leak to worry about.
+
+        Sets `self.store` for subclasses to use.
+      parameters:
+      - in: path
+        name: store_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - api
+      security:
+      - platformJwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ShippingZone'
+          description: ''
+    post:
+      operationId: api_v1_dashboard_stores_shipping_zones_create
+      description: |-
+        Base class for any `/api/v1/dashboard/stores/<uuid:store_id>/...`
+        endpoint. Relies on `TenantMiddleware` having already resolved the
+        path's `store_id` into `request.tenant_store` (path-based, Host
+        header ignored -- apps/stores/middleware.py).
+
+        404 vs 403 distinguished on purpose (same reasoning as Phase 3's
+        StoreDetailView, docs/PHASE_3_REPORT.md): a store's existence isn't
+        secret (its RLS SELECT policy is intentionally open), but catalog
+        resources INSIDE it are fully RLS-restricted with no such exception
+        -- so once past this gate, an ordinary tenant-scoped query for a
+        resource that doesn't exist in this store naturally 404s via
+        `DoesNotExist`, with no separate leak to worry about.
+
+        Sets `self.store` for subclasses to use.
+      parameters:
+      - in: path
+        name: store_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ShippingZoneRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ShippingZoneRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ShippingZoneRequest'
+        required: true
+      security:
+      - platformJwtAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ShippingZone'
+          description: ''
+  /api/v1/dashboard/stores/{store_id}/shipping/zones/{zone_id}/methods:
+    get:
+      operationId: api_v1_dashboard_stores_shipping_zones_methods_list
+      description: |-
+        Base class for any `/api/v1/dashboard/stores/<uuid:store_id>/...`
+        endpoint. Relies on `TenantMiddleware` having already resolved the
+        path's `store_id` into `request.tenant_store` (path-based, Host
+        header ignored -- apps/stores/middleware.py).
+
+        404 vs 403 distinguished on purpose (same reasoning as Phase 3's
+        StoreDetailView, docs/PHASE_3_REPORT.md): a store's existence isn't
+        secret (its RLS SELECT policy is intentionally open), but catalog
+        resources INSIDE it are fully RLS-restricted with no such exception
+        -- so once past this gate, an ordinary tenant-scoped query for a
+        resource that doesn't exist in this store naturally 404s via
+        `DoesNotExist`, with no separate leak to worry about.
+
+        Sets `self.store` for subclasses to use.
+      parameters:
+      - in: path
+        name: store_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      - in: path
+        name: zone_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - api
+      security:
+      - platformJwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ShippingMethod'
+          description: ''
+    post:
+      operationId: api_v1_dashboard_stores_shipping_zones_methods_create
+      description: |-
+        Base class for any `/api/v1/dashboard/stores/<uuid:store_id>/...`
+        endpoint. Relies on `TenantMiddleware` having already resolved the
+        path's `store_id` into `request.tenant_store` (path-based, Host
+        header ignored -- apps/stores/middleware.py).
+
+        404 vs 403 distinguished on purpose (same reasoning as Phase 3's
+        StoreDetailView, docs/PHASE_3_REPORT.md): a store's existence isn't
+        secret (its RLS SELECT policy is intentionally open), but catalog
+        resources INSIDE it are fully RLS-restricted with no such exception
+        -- so once past this gate, an ordinary tenant-scoped query for a
+        resource that doesn't exist in this store naturally 404s via
+        `DoesNotExist`, with no separate leak to worry about.
+
+        Sets `self.store` for subclasses to use.
+      parameters:
+      - in: path
+        name: store_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      - in: path
+        name: zone_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ShippingMethodRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ShippingMethodRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ShippingMethodRequest'
+        required: true
+      security:
+      - platformJwtAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ShippingMethod'
+          description: ''
+  /api/v1/dashboard/stores/{store_id}/subscription:
+    get:
+      operationId: api_v1_dashboard_stores_subscription_retrieve
+      description: |-
+        Base class for any `/api/v1/dashboard/stores/<uuid:store_id>/...`
+        endpoint. Relies on `TenantMiddleware` having already resolved the
+        path's `store_id` into `request.tenant_store` (path-based, Host
+        header ignored -- apps/stores/middleware.py).
+
+        404 vs 403 distinguished on purpose (same reasoning as Phase 3's
+        StoreDetailView, docs/PHASE_3_REPORT.md): a store's existence isn't
+        secret (its RLS SELECT policy is intentionally open), but catalog
+        resources INSIDE it are fully RLS-restricted with no such exception
+        -- so once past this gate, an ordinary tenant-scoped query for a
+        resource that doesn't exist in this store naturally 404s via
+        `DoesNotExist`, with no separate leak to worry about.
+
+        Sets `self.store` for subclasses to use.
+      parameters:
+      - in: path
+        name: store_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - api
+      security:
+      - platformJwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SubscriptionStatus'
+          description: ''
+  /api/v1/dashboard/stores/{store_id}/supplier-products/{supplier_product_id}/promote:
+    post:
+      operationId: api_v1_dashboard_stores_supplier_products_promote_create
+      description: |-
+        Base class for any `/api/v1/dashboard/stores/<uuid:store_id>/...`
+        endpoint. Relies on `TenantMiddleware` having already resolved the
+        path's `store_id` into `request.tenant_store` (path-based, Host
+        header ignored -- apps/stores/middleware.py).
+
+        404 vs 403 distinguished on purpose (same reasoning as Phase 3's
+        StoreDetailView, docs/PHASE_3_REPORT.md): a store's existence isn't
+        secret (its RLS SELECT policy is intentionally open), but catalog
+        resources INSIDE it are fully RLS-restricted with no such exception
+        -- so once past this gate, an ordinary tenant-scoped query for a
+        resource that doesn't exist in this store naturally 404s via
+        `DoesNotExist`, with no separate leak to worry about.
+
+        Sets `self.store` for subclasses to use.
+      parameters:
+      - in: path
+        name: store_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      - in: path
+        name: supplier_product_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PromoteRequestRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PromoteRequestRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PromoteRequestRequest'
+        required: true
+      security:
+      - platformJwtAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/v1/dashboard/stores/{store_id}/suppliers:
+    get:
+      operationId: api_v1_dashboard_stores_suppliers_list
+      description: |-
+        Base class for any `/api/v1/dashboard/stores/<uuid:store_id>/...`
+        endpoint. Relies on `TenantMiddleware` having already resolved the
+        path's `store_id` into `request.tenant_store` (path-based, Host
+        header ignored -- apps/stores/middleware.py).
+
+        404 vs 403 distinguished on purpose (same reasoning as Phase 3's
+        StoreDetailView, docs/PHASE_3_REPORT.md): a store's existence isn't
+        secret (its RLS SELECT policy is intentionally open), but catalog
+        resources INSIDE it are fully RLS-restricted with no such exception
+        -- so once past this gate, an ordinary tenant-scoped query for a
+        resource that doesn't exist in this store naturally 404s via
+        `DoesNotExist`, with no separate leak to worry about.
+
+        Sets `self.store` for subclasses to use.
+      parameters:
+      - in: path
+        name: store_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - api
+      security:
+      - platformJwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Supplier'
+          description: ''
+    post:
+      operationId: api_v1_dashboard_stores_suppliers_create
+      description: |-
+        Base class for any `/api/v1/dashboard/stores/<uuid:store_id>/...`
+        endpoint. Relies on `TenantMiddleware` having already resolved the
+        path's `store_id` into `request.tenant_store` (path-based, Host
+        header ignored -- apps/stores/middleware.py).
+
+        404 vs 403 distinguished on purpose (same reasoning as Phase 3's
+        StoreDetailView, docs/PHASE_3_REPORT.md): a store's existence isn't
+        secret (its RLS SELECT policy is intentionally open), but catalog
+        resources INSIDE it are fully RLS-restricted with no such exception
+        -- so once past this gate, an ordinary tenant-scoped query for a
+        resource that doesn't exist in this store naturally 404s via
+        `DoesNotExist`, with no separate leak to worry about.
+
+        Sets `self.store` for subclasses to use.
+      parameters:
+      - in: path
+        name: store_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SupplierRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/SupplierRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/SupplierRequest'
+        required: true
+      security:
+      - platformJwtAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Supplier'
+          description: ''
+  /api/v1/dashboard/stores/{store_id}/suppliers/{supplier_id}/products:
+    get:
+      operationId: api_v1_dashboard_stores_suppliers_products_list
+      description: |-
+        Base class for any `/api/v1/dashboard/stores/<uuid:store_id>/...`
+        endpoint. Relies on `TenantMiddleware` having already resolved the
+        path's `store_id` into `request.tenant_store` (path-based, Host
+        header ignored -- apps/stores/middleware.py).
+
+        404 vs 403 distinguished on purpose (same reasoning as Phase 3's
+        StoreDetailView, docs/PHASE_3_REPORT.md): a store's existence isn't
+        secret (its RLS SELECT policy is intentionally open), but catalog
+        resources INSIDE it are fully RLS-restricted with no such exception
+        -- so once past this gate, an ordinary tenant-scoped query for a
+        resource that doesn't exist in this store naturally 404s via
+        `DoesNotExist`, with no separate leak to worry about.
+
+        Sets `self.store` for subclasses to use.
+      parameters:
+      - in: path
+        name: store_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      - in: path
+        name: supplier_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - api
+      security:
+      - platformJwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/SupplierProduct'
+          description: ''
+  /api/v1/dashboard/stores/{store_id}/suppliers/{supplier_id}/sync:
+    post:
+      operationId: api_v1_dashboard_stores_suppliers_sync_create
+      description: |-
+        Base class for any `/api/v1/dashboard/stores/<uuid:store_id>/...`
+        endpoint. Relies on `TenantMiddleware` having already resolved the
+        path's `store_id` into `request.tenant_store` (path-based, Host
+        header ignored -- apps/stores/middleware.py).
+
+        404 vs 403 distinguished on purpose (same reasoning as Phase 3's
+        StoreDetailView, docs/PHASE_3_REPORT.md): a store's existence isn't
+        secret (its RLS SELECT policy is intentionally open), but catalog
+        resources INSIDE it are fully RLS-restricted with no such exception
+        -- so once past this gate, an ordinary tenant-scoped query for a
+        resource that doesn't exist in this store naturally 404s via
+        `DoesNotExist`, with no separate leak to worry about.
+
+        Sets `self.store` for subclasses to use.
+      parameters:
+      - in: path
+        name: store_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      - in: path
+        name: supplier_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - api
+      security:
+      - platformJwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/SupplierProduct'
+          description: ''
+  /api/v1/dashboard/stores/{store_id}/tags:
+    get:
+      operationId: api_v1_dashboard_stores_tags_retrieve
+      description: |-
+        Base class for any `/api/v1/dashboard/stores/<uuid:store_id>/...`
+        endpoint. Relies on `TenantMiddleware` having already resolved the
+        path's `store_id` into `request.tenant_store` (path-based, Host
+        header ignored -- apps/stores/middleware.py).
+
+        404 vs 403 distinguished on purpose (same reasoning as Phase 3's
+        StoreDetailView, docs/PHASE_3_REPORT.md): a store's existence isn't
+        secret (its RLS SELECT policy is intentionally open), but catalog
+        resources INSIDE it are fully RLS-restricted with no such exception
+        -- so once past this gate, an ordinary tenant-scoped query for a
+        resource that doesn't exist in this store naturally 404s via
+        `DoesNotExist`, with no separate leak to worry about.
+
+        Sets `self.store` for subclasses to use.
+      parameters:
+      - in: path
+        name: store_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - api
+      security:
+      - platformJwtAuth: []
+      responses:
+        '200':
+          description: No response body
+    post:
+      operationId: api_v1_dashboard_stores_tags_create
+      description: |-
+        Base class for any `/api/v1/dashboard/stores/<uuid:store_id>/...`
+        endpoint. Relies on `TenantMiddleware` having already resolved the
+        path's `store_id` into `request.tenant_store` (path-based, Host
+        header ignored -- apps/stores/middleware.py).
+
+        404 vs 403 distinguished on purpose (same reasoning as Phase 3's
+        StoreDetailView, docs/PHASE_3_REPORT.md): a store's existence isn't
+        secret (its RLS SELECT policy is intentionally open), but catalog
+        resources INSIDE it are fully RLS-restricted with no such exception
+        -- so once past this gate, an ordinary tenant-scoped query for a
+        resource that doesn't exist in this store naturally 404s via
+        `DoesNotExist`, with no separate leak to worry about.
+
+        Sets `self.store` for subclasses to use.
+      parameters:
+      - in: path
+        name: store_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - api
+      security:
+      - platformJwtAuth: []
+      responses:
+        '200':
+          description: No response body
+  /api/v1/dashboard/stores/{store_id}/theme:
+    get:
+      operationId: api_v1_dashboard_stores_theme_retrieve
+      description: |-
+        Base class for any `/api/v1/dashboard/stores/<uuid:store_id>/...`
+        endpoint. Relies on `TenantMiddleware` having already resolved the
+        path's `store_id` into `request.tenant_store` (path-based, Host
+        header ignored -- apps/stores/middleware.py).
+
+        404 vs 403 distinguished on purpose (same reasoning as Phase 3's
+        StoreDetailView, docs/PHASE_3_REPORT.md): a store's existence isn't
+        secret (its RLS SELECT policy is intentionally open), but catalog
+        resources INSIDE it are fully RLS-restricted with no such exception
+        -- so once past this gate, an ordinary tenant-scoped query for a
+        resource that doesn't exist in this store naturally 404s via
+        `DoesNotExist`, with no separate leak to worry about.
+
+        Sets `self.store` for subclasses to use.
+      parameters:
+      - in: path
+        name: store_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - api
+      security:
+      - platformJwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StoreThemeConfig'
+          description: ''
+  /api/v1/dashboard/theme-presets:
+    get:
+      operationId: api_v1_dashboard_theme_presets_list
+      tags:
+      - api
+      security:
+      - platformJwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ThemePreset'
+          description: ''
+  /api/v1/platform/audit-logs:
+    get:
+      operationId: api_v1_platform_audit_logs_list
+      tags:
+      - api
+      security:
+      - platformJwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AuditLog'
+          description: ''
+  /api/v1/platform/overview:
+    get:
+      operationId: api_v1_platform_overview_retrieve
+      tags:
+      - api
+      security:
+      - platformJwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/v1/platform/plans:
+    get:
+      operationId: api_v1_platform_plans_list
+      tags:
+      - api
+      security:
+      - platformJwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Plan'
+          description: ''
+    post:
+      operationId: api_v1_platform_plans_create
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PlanCreateRequestRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PlanCreateRequestRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PlanCreateRequestRequest'
+        required: true
+      security:
+      - platformJwtAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Plan'
+          description: ''
+  /api/v1/platform/plans/{plan_id}:
+    get:
+      operationId: api_v1_platform_plans_retrieve
+      parameters:
+      - in: path
+        name: plan_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - api
+      security:
+      - platformJwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlanDetail'
+          description: ''
+  /api/v1/platform/plans/{plan_id}/activate:
+    post:
+      operationId: api_v1_platform_plans_activate_create
+      parameters:
+      - in: path
+        name: plan_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - api
+      security:
+      - platformJwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Plan'
+          description: ''
+  /api/v1/platform/plans/{plan_id}/deactivate:
+    post:
+      operationId: api_v1_platform_plans_deactivate_create
+      parameters:
+      - in: path
+        name: plan_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - api
+      security:
+      - platformJwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Plan'
+          description: ''
+  /api/v1/platform/plans/{plan_id}/versions:
+    post:
+      operationId: api_v1_platform_plans_versions_create
+      parameters:
+      - in: path
+        name: plan_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PlanVersionPublishRequestRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PlanVersionPublishRequestRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PlanVersionPublishRequestRequest'
+        required: true
+      security:
+      - platformJwtAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlanVersion'
+          description: ''
+  /api/v1/platform/stores:
+    get:
+      operationId: api_v1_platform_stores_list
+      tags:
+      - api
+      security:
+      - platformJwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PlatformStore'
+          description: ''
+  /api/v1/platform/stores/{store_id}:
+    get:
+      operationId: api_v1_platform_stores_retrieve
+      parameters:
+      - in: path
+        name: store_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - api
+      security:
+      - platformJwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlatformStore'
+          description: ''
+  /api/v1/platform/stores/{store_id}/activate:
+    post:
+      operationId: api_v1_platform_stores_activate_create
+      parameters:
+      - in: path
+        name: store_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - api
+      security:
+      - platformJwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlatformStore'
+          description: ''
+  /api/v1/platform/stores/{store_id}/suspend:
+    post:
+      operationId: api_v1_platform_stores_suspend_create
+      parameters:
+      - in: path
+        name: store_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StoreSuspendRequestRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/StoreSuspendRequestRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/StoreSuspendRequestRequest'
+      security:
+      - platformJwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlatformStore'
+          description: ''
+  /api/v1/platform/subscriptions:
+    get:
+      operationId: api_v1_platform_subscriptions_list
+      tags:
+      - api
+      security:
+      - platformJwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Subscription'
+          description: ''
+  /api/v1/platform/subscriptions/{subscription_id}:
+    get:
+      operationId: api_v1_platform_subscriptions_retrieve
+      parameters:
+      - in: path
+        name: subscription_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - api
+      security:
+      - platformJwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Subscription'
+          description: ''
+  /api/v1/platform/subscriptions/{subscription_id}/activate:
+    post:
+      operationId: api_v1_platform_subscriptions_activate_create
+      parameters:
+      - in: path
+        name: subscription_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - api
+      security:
+      - platformJwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Subscription'
+          description: ''
+  /api/v1/platform/subscriptions/{subscription_id}/cancel:
+    post:
+      operationId: api_v1_platform_subscriptions_cancel_create
+      parameters:
+      - in: path
+        name: subscription_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - api
+      security:
+      - platformJwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Subscription'
+          description: ''
+  /api/v1/platform/users:
+    get:
+      operationId: api_v1_platform_users_list
+      tags:
+      - api
+      security:
+      - platformJwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PlatformUser'
+          description: ''
+  /api/v1/platform/users/{user_id}:
+    get:
+      operationId: api_v1_platform_users_retrieve
+      parameters:
+      - in: path
+        name: user_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - api
+      security:
+      - platformJwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlatformUser'
+          description: ''
+  /api/v1/platform/users/{user_id}/mfa/reset:
+    post:
+      operationId: api_v1_platform_users_mfa_reset_create
+      description: |-
+        Explicit, audited privileged action -- see
+        `services.reset_user_mfa`'s docstring for why this exists instead of
+        any self-service MFA bypass.
+      parameters:
+      - in: path
+        name: user_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - api
+      security:
+      - platformJwtAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/v1/storefront/cart:
+    get:
+      operationId: api_v1_storefront_cart_retrieve
+      description: Resolves/creates `self.cart` from the cart cookie, setting it on
+        the way out if it's new.
+      tags:
+      - api
+      security:
+      - platformJwtAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Cart'
+          description: ''
+  /api/v1/storefront/cart/coupon:
+    post:
+      operationId: api_v1_storefront_cart_coupon_create
+      description: Resolves/creates `self.cart` from the cart cookie, setting it on
+        the way out if it's new.
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ApplyCouponRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ApplyCouponRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ApplyCouponRequest'
+        required: true
+      security:
+      - platformJwtAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Cart'
+          description: ''
+    delete:
+      operationId: api_v1_storefront_cart_coupon_destroy
+      description: Resolves/creates `self.cart` from the cart cookie, setting it on
+        the way out if it's new.
+      tags:
+      - api
+      security:
+      - platformJwtAuth: []
+      - {}
+      responses:
+        '204':
+          description: No response body
+  /api/v1/storefront/cart/items:
+    post:
+      operationId: api_v1_storefront_cart_items_create
+      description: Resolves/creates `self.cart` from the cart cookie, setting it on
+        the way out if it's new.
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AddCartItemRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/AddCartItemRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/AddCartItemRequest'
+        required: true
+      security:
+      - platformJwtAuth: []
+      - {}
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Cart'
+          description: ''
+  /api/v1/storefront/cart/items/{item_id}:
+    patch:
+      operationId: api_v1_storefront_cart_items_partial_update
+      description: Resolves/creates `self.cart` from the cart cookie, setting it on
+        the way out if it's new.
+      parameters:
+      - in: path
+        name: item_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedUpdateCartItemRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedUpdateCartItemRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedUpdateCartItemRequest'
+      security:
+      - platformJwtAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Cart'
+          description: ''
+    delete:
+      operationId: api_v1_storefront_cart_items_destroy
+      description: Resolves/creates `self.cart` from the cart cookie, setting it on
+        the way out if it's new.
+      parameters:
+      - in: path
+        name: item_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - api
+      security:
+      - platformJwtAuth: []
+      - {}
+      responses:
+        '204':
+          description: No response body
+  /api/v1/storefront/cart/reprice:
+    post:
+      operationId: api_v1_storefront_cart_reprice_create
+      description: Resolves/creates `self.cart` from the cart cookie, setting it on
+        the way out if it's new.
+      tags:
+      - api
+      security:
+      - platformJwtAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Cart'
+          description: ''
+  /api/v1/storefront/cart/shipping-quotes:
+    get:
+      operationId: api_v1_storefront_cart_shipping_quotes_list
+      description: |-
+        Informational only -- see apps/shipping/models.py's module docstring
+        (scope decision 2). Never a checkout prerequisite: nothing here is
+        persisted onto the cart, and Phase 8's Order creation path must
+        independently re-price shipping at authoritative checkout time
+        (see docs/PHASE_6_REPORT.md's mandatory Phase 8 rule).
+      parameters:
+      - in: query
+        name: country_code
+        schema:
+          type: string
+        required: true
+      - in: query
+        name: postal_code
+        schema:
+          type: string
+      - in: query
+        name: region
+        schema:
+          type: string
+      tags:
+      - api
+      security:
+      - platformJwtAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ShippingQuote'
+          description: ''
+  /api/v1/storefront/categories:
+    get:
+      operationId: api_v1_storefront_categories_list
+      description: |-
+        Base class for any `/api/v1/storefront/...` endpoint. Relies on
+        `TenantMiddleware` having resolved the request's Host header into
+        `request.tenant_store` (apps/stores/middleware.py) -- deliberately
+        the OPPOSITE resolution path from `StoreScopedAPIView` (Host, never
+        a path segment), matching how a real storefront request arrives
+        (`store1.example.com`, not `/dashboard/stores/<id>/...`).
+
+        Public/guest-accessible by design (`AllowAny`) -- storefront
+        endpoints serve shoppers, not authenticated merchant staff. No
+        unresolved-host case is silently allowed through: an unknown
+        hostname 404s here, same as a genuinely nonexistent dashboard store.
+
+        Sets `self.store` for subclasses to use.
+      tags:
+      - api
+      security:
+      - platformJwtAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/StorefrontCategory'
+          description: ''
+  /api/v1/storefront/checkout/address:
+    post:
+      operationId: api_v1_storefront_checkout_address_create
+      description: Resolves/creates `self.cart` from the cart cookie, setting it on
+        the way out if it's new.
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CheckoutAddressRequestRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/CheckoutAddressRequestRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/CheckoutAddressRequestRequest'
+        required: true
+      security:
+      - platformJwtAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CheckoutSession'
+          description: ''
+  /api/v1/storefront/checkout/complete:
+    post:
+      operationId: api_v1_storefront_checkout_complete_create
+      description: Resolves/creates `self.cart` from the cart cookie, setting it on
+        the way out if it's new.
+      tags:
+      - api
+      security:
+      - platformJwtAuth: []
+      - {}
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Order'
+          description: ''
+  /api/v1/storefront/checkout/shipping:
+    post:
+      operationId: api_v1_storefront_checkout_shipping_create
+      description: Resolves/creates `self.cart` from the cart cookie, setting it on
+        the way out if it's new.
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CheckoutShippingRequestRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/CheckoutShippingRequestRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/CheckoutShippingRequestRequest'
+        required: true
+      security:
+      - platformJwtAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CheckoutSession'
+          description: ''
+  /api/v1/storefront/checkout/start:
+    post:
+      operationId: api_v1_storefront_checkout_start_create
+      description: Resolves/creates `self.cart` from the cart cookie, setting it on
+        the way out if it's new.
+      tags:
+      - api
+      security:
+      - platformJwtAuth: []
+      - {}
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CheckoutSession'
+          description: ''
+  /api/v1/storefront/context:
+    get:
+      operationId: api_v1_storefront_context_retrieve
+      description: |-
+        Phase 13: `GET /api/v1/storefront/context` -- the one call every
+        storefront page needs before it can render anything (which store,
+        which theme, which settings). Host-resolved like every other
+        storefront endpoint; see `StorefrontAPIView`.
+      tags:
+      - api
+      security:
+      - platformJwtAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StorefrontContext'
+          description: ''
+  /api/v1/storefront/inventory/availability:
+    get:
+      operationId: api_v1_storefront_inventory_availability_retrieve
+      description: |-
+        `GET .../storefront/inventory/availability?variant=<id>&variant=<id>` --
+        Phase 13. Only ever returns a summed "available across all locations"
+        integer per variant, never per-location detail or any other
+        `StockBalance` field -- that breakdown is a merchant-only concept.
+        An id with no `StockBalance` rows at all is simply absent from the
+        response (zero-available and never-stocked look the same to a
+        shopper: not orderable).
+      parameters:
+      - in: query
+        name: variant
+        schema:
+          type: array
+          items:
+            type: string
+        description: Repeatable -- one or more ProductVariant ids.
+      tags:
+      - api
+      security:
+      - platformJwtAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/v1/storefront/payments/initiate:
+    post:
+      operationId: api_v1_storefront_payments_initiate_create
+      description: |-
+        Base class for any `/api/v1/storefront/...` endpoint. Relies on
+        `TenantMiddleware` having resolved the request's Host header into
+        `request.tenant_store` (apps/stores/middleware.py) -- deliberately
+        the OPPOSITE resolution path from `StoreScopedAPIView` (Host, never
+        a path segment), matching how a real storefront request arrives
+        (`store1.example.com`, not `/dashboard/stores/<id>/...`).
+
+        Public/guest-accessible by design (`AllowAny`) -- storefront
+        endpoints serve shoppers, not authenticated merchant staff. No
+        unresolved-host case is silently allowed through: an unknown
+        hostname 404s here, same as a genuinely nonexistent dashboard store.
+
+        Sets `self.store` for subclasses to use.
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PaymentInitiateRequestRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PaymentInitiateRequestRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PaymentInitiateRequestRequest'
+        required: true
+      security:
+      - platformJwtAuth: []
+      - {}
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentIntentResponse'
+          description: ''
+  /api/v1/storefront/payments/providers:
+    get:
+      operationId: api_v1_storefront_payments_providers_list
+      description: |-
+        `GET /api/v1/storefront/payments/providers` -- Phase 13's checkout
+        payment-method picker. Only enabled providers, only `provider_key`.
+      tags:
+      - api
+      security:
+      - platformJwtAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/StorefrontProvider'
+          description: ''
+  /api/v1/storefront/products:
+    get:
+      operationId: api_v1_storefront_products_list
+      description: |-
+        Base class for any `/api/v1/storefront/...` endpoint. Relies on
+        `TenantMiddleware` having resolved the request's Host header into
+        `request.tenant_store` (apps/stores/middleware.py) -- deliberately
+        the OPPOSITE resolution path from `StoreScopedAPIView` (Host, never
+        a path segment), matching how a real storefront request arrives
+        (`store1.example.com`, not `/dashboard/stores/<id>/...`).
+
+        Public/guest-accessible by design (`AllowAny`) -- storefront
+        endpoints serve shoppers, not authenticated merchant staff. No
+        unresolved-host case is silently allowed through: an unknown
+        hostname 404s here, same as a genuinely nonexistent dashboard store.
+
+        Sets `self.store` for subclasses to use.
+      parameters:
+      - in: query
+        name: category
+        schema:
+          type: string
+        description: Filter by category slug.
+      tags:
+      - api
+      security:
+      - platformJwtAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/StorefrontProductList'
+          description: ''
+  /api/v1/storefront/products/{slug}:
+    get:
+      operationId: api_v1_storefront_products_retrieve
+      description: |-
+        Base class for any `/api/v1/storefront/...` endpoint. Relies on
+        `TenantMiddleware` having resolved the request's Host header into
+        `request.tenant_store` (apps/stores/middleware.py) -- deliberately
+        the OPPOSITE resolution path from `StoreScopedAPIView` (Host, never
+        a path segment), matching how a real storefront request arrives
+        (`store1.example.com`, not `/dashboard/stores/<id>/...`).
+
+        Public/guest-accessible by design (`AllowAny`) -- storefront
+        endpoints serve shoppers, not authenticated merchant staff. No
+        unresolved-host case is silently allowed through: an unknown
+        hostname 404s here, same as a genuinely nonexistent dashboard store.
+
+        Sets `self.store` for subclasses to use.
+      parameters:
+      - in: path
+        name: slug
+        schema:
+          type: string
+        required: true
+      tags:
+      - api
+      security:
+      - platformJwtAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StorefrontProductDetail'
+          description: ''
+  /api/v1/webhooks/payments/{provider}/{store_id}:
+    post:
+      operationId: api_v1_webhooks_payments_create
+      description: |-
+        Base class for `/api/v1/webhooks/payments/<provider>/<uuid:store_id>`
+        (Phase 9) -- the third tenant-resolution strategy, added to
+        `TenantMiddleware` alongside dashboard/storefront (see that module's
+        docstring). No Host to trust, no authenticated user to check
+        membership for (`AllowAny`, same reasoning as `StorefrontAPIView`) --
+        the store_id path segment ONLY resolves which tenant's RLS scope to
+        look the provider config up in. It is never treated as a security
+        boundary by itself: `apps.payments.services.process_webhook` still
+        verifies the provider's signature before any side effect, exactly as
+        it would for a forged store_id pointing at a real store.
+
+        Sets `self.store` for subclasses to use.
+      parameters:
+      - in: path
+        name: provider
+        schema:
+          type: string
+        required: true
+      - in: path
+        name: store_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - api
+      security:
+      - platformJwtAuth: []
+      - {}
+      responses:
+        '200':
+          description: No response body
+components:
+  schemas:
+    AddCartItemRequest:
+      type: object
+      properties:
+        variant:
+          type: string
+          format: uuid
+        quantity:
+          type: integer
+          minimum: 1
+      required:
+      - quantity
+      - variant
+    AdjustStockRequest:
+      type: object
+      properties:
+        variant:
+          type: string
+          format: uuid
+        location:
+          type: string
+          format: uuid
+        delta:
+          type: integer
+        reason:
+          type: string
+          minLength: 1
+          maxLength: 255
+        reference:
+          type: string
+          default: ''
+          maxLength: 255
+      required:
+      - delta
+      - location
+      - reason
+      - variant
+    ApplyCouponRequest:
+      type: object
+      properties:
+        code:
+          type: string
+          minLength: 1
+          maxLength: 64
+      required:
+      - code
+    AuditLog:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        actor_user_id:
+          type: string
+          format: uuid
+          readOnly: true
+        actor_email:
+          type: string
+          format: email
+          readOnly: true
+          description: Denormalized at write time -- readable without a second cross-role
+            join, and stable even if the actor account is later renamed.
+        action:
+          type: string
+          readOnly: true
+        target_type:
+          type: string
+          readOnly: true
+        target_id:
+          type: string
+          format: uuid
+          readOnly: true
+        store_id:
+          type: string
+          format: uuid
+          readOnly: true
+          nullable: true
+        metadata:
+          readOnly: true
+          description: Safe, non-secret context only -- never tokens/passwords/payment
+            data.
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - action
+      - actor_email
+      - actor_user_id
+      - created_at
+      - id
+      - metadata
+      - store_id
+      - target_id
+      - target_type
+    BillingIntervalEnum:
+      enum:
+      - monthly
+      - yearly
+      type: string
+      description: |-
+        * `monthly` - Monthly
+        * `yearly` - Yearly
+    Cart:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        status:
+          allOf:
+          - $ref: '#/components/schemas/CartStatusEnum'
+          readOnly: true
+        currency:
+          type: string
+          readOnly: true
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/CartItem'
+          readOnly: true
+        coupon_code:
+          type: string
+          readOnly: true
+        subtotal_amount:
+          type: integer
+          readOnly: true
+        discount_amount:
+          type: integer
+          readOnly: true
+        tax_amount:
+          type: integer
+          readOnly: true
+        total_amount:
+          type: integer
+          readOnly: true
+      required:
+      - coupon_code
+      - currency
+      - discount_amount
+      - id
+      - items
+      - status
+      - subtotal_amount
+      - tax_amount
+      - total_amount
+    CartItem:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        variant:
+          type: string
+          format: uuid
+        variant_sku:
+          type: string
+          readOnly: true
+        quantity:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+        unit_price_amount:
+          type: integer
+          readOnly: true
+        currency:
+          type: string
+          readOnly: true
+      required:
+      - currency
+      - id
+      - quantity
+      - unit_price_amount
+      - variant
+      - variant_sku
+    CartStatusEnum:
+      enum:
+      - active
+      - abandoned
+      type: string
+      description: |-
+        * `active` - Active
+        * `abandoned` - Abandoned
+    CheckoutAddressRequestRequest:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+          minLength: 1
+        shipping_address:
+          $ref: '#/components/schemas/ShippingAddressRequest'
+      required:
+      - email
+      - shipping_address
+    CheckoutSession:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        status:
+          type: string
+        expires_at:
+          type: string
+          format: date-time
+        email:
+          type: string
+          format: email
+        shipping_address:
+          nullable: true
+        shipping_method_id:
+          type: string
+          format: uuid
+          nullable: true
+        shipping_method_name_snapshot:
+          type: string
+        shipping_amount_snapshot:
+          type: integer
+          nullable: true
+      required:
+      - email
+      - expires_at
+      - id
+      - shipping_address
+      - shipping_amount_snapshot
+      - shipping_method_id
+      - shipping_method_name_snapshot
+      - status
+    CheckoutShippingRequestRequest:
+      type: object
+      properties:
+        shipping_method_id:
+          type: string
+          format: uuid
+      required:
+      - shipping_method_id
+    CreateProductRequest:
+      type: object
+      description: 'One-shot: Product + its default variant -- see apps/catalog/services.py:create_product.'
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 255
+        slug:
+          type: string
+          minLength: 1
+          maxLength: 255
+          pattern: ^[-a-zA-Z0-9_]+$
+        description:
+          type: string
+          default: ''
+        seo_title:
+          type: string
+          default: ''
+        seo_description:
+          type: string
+          default: ''
+        sku:
+          type: string
+          minLength: 1
+          maxLength: 64
+        price_amount:
+          type: integer
+          minimum: 0
+        currency:
+          type: string
+          minLength: 1
+          maxLength: 3
+      required:
+      - name
+      - price_amount
+      - sku
+      - slug
+    CreateStoreRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 255
+        slug:
+          type: string
+          minLength: 1
+          maxLength: 63
+          pattern: ^[-a-zA-Z0-9_]+$
+        theme_preset_id:
+          type: string
+          format: uuid
+          nullable: true
+      required:
+      - name
+      - slug
+    FulfillmentStatusEnum:
+      enum:
+      - unfulfilled
+      type: string
+      description: '* `unfulfilled` - Unfulfilled'
+    KindEnum:
+      enum:
+      - flat
+      - free
+      - weight_based
+      - price_based
+      - carrier_calculated
+      type: string
+      description: |-
+        * `flat` - Flat rate
+        * `free` - Free shipping
+        * `weight_based` - Weight based
+        * `price_based` - Order value based
+        * `carrier_calculated` - Carrier calculated
+    ModeEnum:
+      enum:
+      - test
+      - live
+      type: string
+      description: |-
+        * `test` - Test
+        * `live` - Live
+    Order:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        number:
+          type: string
+          maxLength: 32
+        email:
+          type: string
+          format: email
+          maxLength: 254
+        status:
+          $ref: '#/components/schemas/Status206Enum'
+        fulfillment_status:
+          $ref: '#/components/schemas/FulfillmentStatusEnum'
+        currency:
+          type: string
+          maxLength: 3
+        subtotal_amount:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+        discount_amount:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+        tax_amount:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+        shipping_amount:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+        total_amount:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+        shipping_address: {}
+        shipping_method_name_snapshot:
+          type: string
+          maxLength: 255
+        coupon_code_snapshot:
+          type: string
+          maxLength: 64
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/OrderItem'
+          readOnly: true
+      required:
+      - created_at
+      - currency
+      - discount_amount
+      - email
+      - id
+      - items
+      - number
+      - shipping_address
+      - shipping_amount
+      - shipping_method_name_snapshot
+      - subtotal_amount
+      - tax_amount
+      - total_amount
+    OrderItem:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        variant_name_snapshot:
+          type: string
+          maxLength: 255
+        variant_sku_snapshot:
+          type: string
+          maxLength: 64
+        variant_options_snapshot: {}
+        unit_price_amount:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+        quantity:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+        currency:
+          type: string
+          maxLength: 3
+        line_total_amount:
+          type: integer
+          readOnly: true
+      required:
+      - currency
+      - id
+      - line_total_amount
+      - quantity
+      - unit_price_amount
+      - variant_name_snapshot
+      - variant_sku_snapshot
+    OrderList:
+      type: object
+      description: Dashboard list view -- no `items` (avoids N+1 across a page of
+        orders).
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        number:
+          type: string
+          maxLength: 32
+        email:
+          type: string
+          format: email
+          maxLength: 254
+        status:
+          $ref: '#/components/schemas/Status206Enum'
+        fulfillment_status:
+          $ref: '#/components/schemas/FulfillmentStatusEnum'
+        currency:
+          type: string
+          maxLength: 3
+        total_amount:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - created_at
+      - currency
+      - email
+      - id
+      - number
+      - total_amount
+    PatchedUpdateCartItemRequest:
+      type: object
+      properties:
+        quantity:
+          type: integer
+          minimum: 0
+    PatchedUpdateProductRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 255
+        slug:
+          type: string
+          minLength: 1
+          maxLength: 255
+          pattern: ^[-a-zA-Z0-9_]+$
+        description:
+          type: string
+        status:
+          $ref: '#/components/schemas/StatusA5eEnum'
+        seo_title:
+          type: string
+          maxLength: 255
+        seo_description:
+          type: string
+          maxLength: 500
+    PatchedUpdateStoreRequest:
+      type: object
+      description: |-
+        PATCH surface for store settings (Phase 12). Deliberately narrow:
+        only fields Store itself already authoritatively owns --
+        `status` is excluded (subscription-lifecycle-managed, see
+        apps.subscriptions.tasks, never merchant-settable directly), and
+        nothing here touches StoreDomain/StoreThemeConfig, which have their
+        own owners.
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 255
+        slug:
+          type: string
+          minLength: 1
+          maxLength: 63
+          pattern: ^[-a-zA-Z0-9_]+$
+        default_currency:
+          type: string
+          minLength: 1
+          maxLength: 3
+        contact_email:
+          type: string
+          format: email
+          maxLength: 254
+        contact_phone:
+          type: string
+          maxLength: 32
+    PaymentInitiateRequestRequest:
+      type: object
+      properties:
+        order_id:
+          type: string
+          format: uuid
+        provider_key:
+          $ref: '#/components/schemas/ProviderKeyEnum'
+      required:
+      - order_id
+      - provider_key
+    PaymentIntentResponse:
+      type: object
+      description: |-
+        Documents the exact plain-dict shape `apps.payments.services._intent_body`
+        already returns -- for `@extend_schema` typing only, never constructed
+        or validated against directly (the view returns the service's dict as-is).
+      properties:
+        id:
+          type: string
+          format: uuid
+        order_id:
+          type: string
+          format: uuid
+        state:
+          type: string
+        amount:
+          type: integer
+        currency:
+          type: string
+        provider_key:
+          type: string
+      required:
+      - amount
+      - currency
+      - id
+      - order_id
+      - provider_key
+      - state
+    Plan:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        code:
+          type: string
+          readOnly: true
+          pattern: ^[-a-zA-Z0-9_]+$
+        name:
+          type: string
+          readOnly: true
+        is_public:
+          type: boolean
+          readOnly: true
+        trial_days:
+          type: integer
+          readOnly: true
+        grace_period_days:
+          type: integer
+          readOnly: true
+        is_default_trial:
+          type: boolean
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - code
+      - created_at
+      - grace_period_days
+      - id
+      - is_default_trial
+      - is_public
+      - name
+      - trial_days
+    PlanCreateRequestRequest:
+      type: object
+      properties:
+        code:
+          type: string
+          minLength: 1
+          maxLength: 64
+          pattern: ^[-a-zA-Z0-9_]+$
+        name:
+          type: string
+          minLength: 1
+          maxLength: 255
+        is_public:
+          type: boolean
+          default: true
+        trial_days:
+          type: integer
+          minimum: 0
+          default: 0
+        grace_period_days:
+          type: integer
+          minimum: 0
+          default: 3
+      required:
+      - code
+      - name
+    PlanDetail:
+      type: object
+      description: |-
+        `versions` is populated explicitly by the view (a separate,
+        correctly-ordered `list_plan_versions` call), not by DRF resolving
+        `plan.versions` as a related manager -- see
+        apps.platform_admin.views.PlatformPlanDetailView.
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        code:
+          type: string
+          readOnly: true
+          pattern: ^[-a-zA-Z0-9_]+$
+        name:
+          type: string
+          readOnly: true
+        is_public:
+          type: boolean
+          readOnly: true
+        trial_days:
+          type: integer
+          readOnly: true
+        grace_period_days:
+          type: integer
+          readOnly: true
+        is_default_trial:
+          type: boolean
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        versions:
+          type: array
+          items:
+            $ref: '#/components/schemas/PlanVersion'
+          readOnly: true
+      required:
+      - code
+      - created_at
+      - grace_period_days
+      - id
+      - is_default_trial
+      - is_public
+      - name
+      - trial_days
+      - versions
+    PlanVersion:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        version_number:
+          type: integer
+          readOnly: true
+        price_monthly:
+          type: integer
+          readOnly: true
+        price_yearly:
+          type: integer
+          readOnly: true
+        currency:
+          type: string
+          readOnly: true
+        is_current:
+          type: boolean
+          readOnly: true
+        published_at:
+          type: string
+          format: date-time
+          readOnly: true
+        features:
+          type: array
+          items:
+            $ref: '#/components/schemas/PlanVersionFeature'
+          readOnly: true
+        quotas:
+          type: array
+          items:
+            $ref: '#/components/schemas/PlanVersionQuota'
+          readOnly: true
+      required:
+      - currency
+      - features
+      - id
+      - is_current
+      - price_monthly
+      - price_yearly
+      - published_at
+      - quotas
+      - version_number
+    PlanVersionFeature:
+      type: object
+      properties:
+        feature_key:
+          type: string
+          maxLength: 64
+        enabled:
+          type: boolean
+      required:
+      - feature_key
+    PlanVersionPublishRequestRequest:
+      type: object
+      properties:
+        price_monthly:
+          type: integer
+          minimum: 0
+        price_yearly:
+          type: integer
+          minimum: 0
+        currency:
+          type: string
+          minLength: 1
+          default: SAR
+          maxLength: 3
+        features:
+          type: object
+          additionalProperties:
+            type: boolean
+        quotas:
+          type: object
+          additionalProperties:
+            type: integer
+            minimum: 0
+            nullable: true
+        make_current:
+          type: boolean
+          default: true
+      required:
+      - price_monthly
+      - price_yearly
+    PlanVersionQuota:
+      type: object
+      properties:
+        quota_key:
+          type: string
+          maxLength: 64
+        limit:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+          nullable: true
+      required:
+      - quota_key
+    PlatformStore:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        name:
+          type: string
+          readOnly: true
+        slug:
+          type: string
+          readOnly: true
+          pattern: ^[-a-zA-Z0-9_]+$
+        status:
+          allOf:
+          - $ref: '#/components/schemas/StatusBb6Enum'
+          readOnly: true
+        default_currency:
+          type: string
+          readOnly: true
+        contact_email:
+          type: string
+          format: email
+          readOnly: true
+        contact_phone:
+          type: string
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - contact_email
+      - contact_phone
+      - created_at
+      - default_currency
+      - id
+      - name
+      - slug
+      - status
+    PlatformTokenObtainPairRequest:
+      type: object
+      properties:
+        email:
+          type: string
+          writeOnly: true
+          minLength: 1
+        password:
+          type: string
+          writeOnly: true
+          minLength: 1
+      required:
+      - email
+      - password
+    PlatformTokenRefresh:
+      type: object
+      properties:
+        refresh:
+          type: string
+        access:
+          type: string
+          readOnly: true
+      required:
+      - access
+      - refresh
+    PlatformTokenRefreshRequest:
+      type: object
+      properties:
+        refresh:
+          type: string
+          minLength: 1
+      required:
+      - refresh
+    PlatformUser:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        email:
+          type: string
+          format: email
+          readOnly: true
+        full_name:
+          type: string
+          readOnly: true
+        is_active:
+          type: boolean
+          readOnly: true
+        is_platform_staff:
+          type: boolean
+          readOnly: true
+          description: Platform Owner realm staff -- see apps.platform_admin (Phase
+            14).
+        email_verified_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - created_at
+      - email
+      - email_verified_at
+      - full_name
+      - id
+      - is_active
+      - is_platform_staff
+    PricingStrategyEnum:
+      enum:
+      - margin_percent
+      - markup_percent
+      - fixed
+      type: string
+      description: |-
+        * `margin_percent` - Margin %
+        * `markup_percent` - Markup %
+        * `fixed` - Fixed price
+    Product:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        name:
+          type: string
+          maxLength: 255
+        slug:
+          type: string
+          maxLength: 255
+          pattern: ^[-a-zA-Z0-9_]+$
+        description:
+          type: string
+        status:
+          $ref: '#/components/schemas/StatusA5eEnum'
+        seo_title:
+          type: string
+          maxLength: 255
+        seo_description:
+          type: string
+          maxLength: 500
+        options:
+          type: array
+          items:
+            $ref: '#/components/schemas/ProductOption'
+          readOnly: true
+        variants:
+          type: array
+          items:
+            $ref: '#/components/schemas/ProductVariant'
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - created_at
+      - id
+      - name
+      - options
+      - slug
+      - updated_at
+      - variants
+    ProductOption:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        name:
+          type: string
+          maxLength: 100
+        position:
+          type: integer
+          readOnly: true
+        values:
+          type: array
+          items:
+            $ref: '#/components/schemas/ProductOptionValue'
+          readOnly: true
+      required:
+      - id
+      - name
+      - position
+      - values
+    ProductOptionValue:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        value:
+          type: string
+          maxLength: 100
+        position:
+          type: integer
+          readOnly: true
+      required:
+      - id
+      - position
+      - value
+    ProductVariant:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        sku:
+          type: string
+          maxLength: 64
+        status:
+          $ref: '#/components/schemas/ProductVariantStatusEnum'
+        is_default:
+          type: boolean
+          readOnly: true
+          description: True only for the auto-created variant of a simple (option-less)
+            product.
+        position:
+          type: integer
+          readOnly: true
+        currency:
+          type: string
+          maxLength: 3
+        price_amount:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+        compare_at_price_amount:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+          nullable: true
+        cost_price_amount:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+          nullable: true
+        weight_grams:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+          nullable: true
+        length_mm:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+          nullable: true
+        width_mm:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+          nullable: true
+        height_mm:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+          nullable: true
+        barcode:
+          type: string
+          maxLength: 64
+        option_values:
+          type: array
+          items:
+            $ref: '#/components/schemas/VariantOptionValue'
+          readOnly: true
+      required:
+      - currency
+      - id
+      - is_default
+      - option_values
+      - position
+      - price_amount
+      - sku
+    ProductVariantStatusEnum:
+      enum:
+      - active
+      - archived
+      type: string
+      description: |-
+        * `active` - Active
+        * `archived` - Archived
+    PromoteRequestRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 255
+        slug:
+          type: string
+          minLength: 1
+          maxLength: 255
+          pattern: ^[-a-zA-Z0-9_]+$
+        sku:
+          type: string
+          minLength: 1
+          maxLength: 64
+        price_amount:
+          type: integer
+          minimum: 0
+        location_id:
+          type: string
+          format: uuid
+          nullable: true
+        initial_stock:
+          type: integer
+          minimum: 0
+          nullable: true
+      required:
+      - name
+      - price_amount
+      - sku
+      - slug
+    ProviderEnum:
+      enum:
+      - mock
+      type: string
+      description: '* `mock` - Mock (demo data)'
+    ProviderKeyEnum:
+      enum:
+      - mock
+      - manual_cod
+      - stripe
+      type: string
+      description: |-
+        * `mock` - mock
+        * `manual_cod` - manual_cod
+        * `stripe` - stripe
+    ShippingAddressRequest:
+      type: object
+      description: |-
+        Validated JSONB snapshot shape -- see apps/orders/models.py's module docstring,
+        decision 4 (no `CustomerAddress` model in Phase 8).
+      properties:
+        recipient_name:
+          type: string
+          minLength: 1
+          maxLength: 255
+        phone:
+          type: string
+          minLength: 1
+          maxLength: 32
+        country_code:
+          type: string
+          minLength: 1
+          maxLength: 2
+        region:
+          type: string
+          default: ''
+          maxLength: 255
+        city:
+          type: string
+          minLength: 1
+          maxLength: 255
+        postal_code:
+          type: string
+          default: ''
+          maxLength: 32
+        line1:
+          type: string
+          minLength: 1
+          maxLength: 255
+        line2:
+          type: string
+          default: ''
+          maxLength: 255
+      required:
+      - city
+      - country_code
+      - line1
+      - phone
+      - recipient_name
+    ShippingMethod:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        zone:
+          type: string
+          format: uuid
+        name:
+          type: string
+          maxLength: 255
+        kind:
+          $ref: '#/components/schemas/KindEnum'
+        is_active:
+          type: boolean
+        position:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+      required:
+      - id
+      - kind
+      - name
+      - zone
+    ShippingMethodRequest:
+      type: object
+      properties:
+        zone:
+          type: string
+          format: uuid
+        name:
+          type: string
+          minLength: 1
+          maxLength: 255
+        kind:
+          $ref: '#/components/schemas/KindEnum'
+        is_active:
+          type: boolean
+        position:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+      required:
+      - kind
+      - name
+      - zone
+    ShippingQuote:
+      type: object
+      properties:
+        method_id:
+          type: string
+          format: uuid
+        method_name:
+          type: string
+        kind:
+          type: string
+        price_amount:
+          type: integer
+        currency:
+          type: string
+      required:
+      - currency
+      - kind
+      - method_id
+      - method_name
+      - price_amount
+    ShippingRate:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        method:
+          type: string
+          format: uuid
+        min_value:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+          nullable: true
+        max_value:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+          nullable: true
+        price_amount:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+        currency:
+          type: string
+          maxLength: 3
+      required:
+      - currency
+      - id
+      - method
+      - price_amount
+    ShippingRateRequest:
+      type: object
+      properties:
+        method:
+          type: string
+          format: uuid
+        min_value:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+          nullable: true
+        max_value:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+          nullable: true
+        price_amount:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+        currency:
+          type: string
+          minLength: 1
+          maxLength: 3
+      required:
+      - currency
+      - method
+      - price_amount
+    ShippingZone:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        name:
+          type: string
+          maxLength: 255
+        countries:
+          type: array
+          items:
+            type: string
+            maxLength: 2
+          description: ISO 3166-1 alpha-2 codes. Empty means 'matches any country'
+            (a catch-all zone).
+        regions:
+          type: array
+          items:
+            type: string
+            maxLength: 255
+        postal_patterns:
+          type: array
+          items:
+            type: string
+            maxLength: 32
+          description: Postal-code PREFIXES (e.g. '11' matches any code starting with
+            '11').
+        priority:
+          type: integer
+          maximum: 2147483647
+          minimum: -2147483648
+        is_active:
+          type: boolean
+      required:
+      - id
+      - name
+    ShippingZoneRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 255
+        countries:
+          type: array
+          items:
+            type: string
+            minLength: 1
+            maxLength: 2
+          description: ISO 3166-1 alpha-2 codes. Empty means 'matches any country'
+            (a catch-all zone).
+        regions:
+          type: array
+          items:
+            type: string
+            minLength: 1
+            maxLength: 255
+        postal_patterns:
+          type: array
+          items:
+            type: string
+            minLength: 1
+            maxLength: 32
+          description: Postal-code PREFIXES (e.g. '11' matches any code starting with
+            '11').
+        priority:
+          type: integer
+          maximum: 2147483647
+          minimum: -2147483648
+        is_active:
+          type: boolean
+      required:
+      - name
+    Status206Enum:
+      enum:
+      - pending_payment
+      - confirmed
+      - cancelled
+      type: string
+      description: |-
+        * `pending_payment` - Pending payment
+        * `confirmed` - Confirmed
+        * `cancelled` - Cancelled
+    Status3a5Enum:
+      enum:
+      - trialing
+      - active
+      - past_due
+      - canceled
+      type: string
+      description: |-
+        * `trialing` - Trialing
+        * `active` - Active
+        * `past_due` - Past due
+        * `canceled` - Canceled
+    StatusA5eEnum:
+      enum:
+      - draft
+      - active
+      - archived
+      type: string
+      description: |-
+        * `draft` - Draft
+        * `active` - Active
+        * `archived` - Archived
+    StatusBb6Enum:
+      enum:
+      - pending
+      - active
+      - suspended
+      - closed
+      - read_only
+      type: string
+      description: |-
+        * `pending` - Pending
+        * `active` - Active
+        * `suspended` - Suspended
+        * `closed` - Closed
+        * `read_only` - Read-only
+    StockBalance:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        variant:
+          type: string
+          format: uuid
+        variant_sku:
+          type: string
+          readOnly: true
+        location:
+          type: string
+          format: uuid
+        location_name:
+          type: string
+          readOnly: true
+        quantity_on_hand:
+          type: integer
+          readOnly: true
+        quantity_reserved:
+          type: integer
+          readOnly: true
+        quantity_available:
+          type: integer
+          readOnly: true
+        low_stock_threshold:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+          nullable: true
+        is_low_stock:
+          type: boolean
+          readOnly: true
+      required:
+      - id
+      - is_low_stock
+      - location
+      - location_name
+      - quantity_available
+      - quantity_on_hand
+      - quantity_reserved
+      - variant
+      - variant_sku
+    StockLocation:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        name:
+          type: string
+          maxLength: 255
+        is_active:
+          type: boolean
+      required:
+      - id
+      - name
+    StockLocationRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 255
+        is_active:
+          type: boolean
+      required:
+      - name
+    StoreDetail:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        name:
+          type: string
+          readOnly: true
+        slug:
+          type: string
+          readOnly: true
+          pattern: ^[-a-zA-Z0-9_]+$
+        status:
+          allOf:
+          - $ref: '#/components/schemas/StatusBb6Enum'
+          readOnly: true
+        default_currency:
+          type: string
+          readOnly: true
+        contact_email:
+          type: string
+          format: email
+          readOnly: true
+        contact_phone:
+          type: string
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - contact_email
+      - contact_phone
+      - created_at
+      - default_currency
+      - id
+      - name
+      - slug
+      - status
+    StoreListItem:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        name:
+          type: string
+          readOnly: true
+        slug:
+          type: string
+          readOnly: true
+          pattern: ^[-a-zA-Z0-9_]+$
+        status:
+          allOf:
+          - $ref: '#/components/schemas/StatusBb6Enum'
+          readOnly: true
+      required:
+      - id
+      - name
+      - slug
+      - status
+    StoreProviderConfig:
+      type: object
+      description: |-
+        `credentials`/`webhook_secret` are write-only (docs/ARCHITECTURE.md section
+        8.3: "لا endpoint يعيد السر إطلاقًا") -- never round-tripped back out. Reading
+        a config only ever shows `credentials_hint`, computed once at write time.
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        provider_key:
+          type: string
+          maxLength: 32
+        mode:
+          $ref: '#/components/schemas/ModeEnum'
+        is_enabled:
+          type: boolean
+        credentials_hint:
+          type: string
+          readOnly: true
+        public_metadata: {}
+      required:
+      - credentials_hint
+      - id
+      - provider_key
+    StoreProviderConfigRequest:
+      type: object
+      description: |-
+        `credentials`/`webhook_secret` are write-only (docs/ARCHITECTURE.md section
+        8.3: "لا endpoint يعيد السر إطلاقًا") -- never round-tripped back out. Reading
+        a config only ever shows `credentials_hint`, computed once at write time.
+      properties:
+        provider_key:
+          type: string
+          minLength: 1
+          maxLength: 32
+        mode:
+          $ref: '#/components/schemas/ModeEnum'
+        is_enabled:
+          type: boolean
+        public_metadata: {}
+        credentials:
+          type: string
+          writeOnly: true
+        webhook_secret:
+          type: string
+          writeOnly: true
+      required:
+      - provider_key
+    StoreSuspendRequestRequest:
+      type: object
+      properties:
+        reason:
+          type: string
+          default: ''
+    StoreThemeConfig:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        theme_code:
+          type: string
+          readOnly: true
+        theme_version_number:
+          type: integer
+          readOnly: true
+        settings:
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - created_at
+      - id
+      - settings
+      - theme_code
+      - theme_version_number
+      - updated_at
+    StorefrontCategory:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        name:
+          type: string
+          maxLength: 255
+        slug:
+          type: string
+          maxLength: 255
+          pattern: ^[-a-zA-Z0-9_]+$
+        parent:
+          type: string
+          format: uuid
+          nullable: true
+        position:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+      required:
+      - id
+      - name
+      - slug
+    StorefrontContext:
+      type: object
+      description: |-
+        Phase 13: everything the storefront renderer needs for one
+        request -- who the store is (public fields only) and which
+        theme/settings to render with. One call, not two, since every
+        storefront page needs both.
+      properties:
+        store:
+          $ref: '#/components/schemas/StorefrontStore'
+        theme:
+          $ref: '#/components/schemas/StoreThemeConfig'
+      required:
+      - store
+      - theme
+    StorefrontProductDetail:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        name:
+          type: string
+          maxLength: 255
+        slug:
+          type: string
+          maxLength: 255
+          pattern: ^[-a-zA-Z0-9_]+$
+        description:
+          type: string
+        seo_title:
+          type: string
+          maxLength: 255
+        seo_description:
+          type: string
+          maxLength: 500
+        options:
+          type: array
+          items:
+            $ref: '#/components/schemas/ProductOption'
+          readOnly: true
+        variants:
+          type: array
+          items:
+            $ref: '#/components/schemas/StorefrontVariant'
+          readOnly: true
+      required:
+      - id
+      - name
+      - options
+      - slug
+      - variants
+    StorefrontProductList:
+      type: object
+      description: |-
+        One row per product for grid/listing views. `price_amount`/
+        `currency`/`compare_at_price_amount` come from the first active
+        variant (by `position`) -- the view prefetches exactly that variant,
+        ordered, so `.variants.all()[0]` never triggers a second query.
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        name:
+          type: string
+          maxLength: 255
+        slug:
+          type: string
+          maxLength: 255
+          pattern: ^[-a-zA-Z0-9_]+$
+        price_amount:
+          type: integer
+          nullable: true
+          readOnly: true
+        currency:
+          type: string
+          nullable: true
+          readOnly: true
+        compare_at_price_amount:
+          type: integer
+          nullable: true
+          readOnly: true
+      required:
+      - compare_at_price_amount
+      - currency
+      - id
+      - name
+      - price_amount
+      - slug
+    StorefrontProvider:
+      type: object
+      description: |-
+        Phase 13 checkout's payment-method picker needs to know WHICH
+        providers this store actually accepts -- never anything else
+        (`credentials_hint`/`mode`/`public_metadata` are merchant-only).
+      properties:
+        provider_key:
+          type: string
+      required:
+      - provider_key
+    StorefrontStore:
+      type: object
+      description: |-
+        Plain `serializers.Serializer`, not bound to `apps.stores.models.Store`
+        -- only the public-safe subset a shopper may see, assembled by the
+        view from `request.tenant_store`. Never the full dashboard
+        `StoreDetailSerializer` shape (that includes `contact_email`/
+        `contact_phone`, merchant-only).
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        default_currency:
+          type: string
+      required:
+      - default_currency
+      - id
+      - name
+    StorefrontVariant:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        sku:
+          type: string
+          maxLength: 64
+        is_default:
+          type: boolean
+          description: True only for the auto-created variant of a simple (option-less)
+            product.
+        position:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+        currency:
+          type: string
+          maxLength: 3
+        price_amount:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+        compare_at_price_amount:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+          nullable: true
+        weight_grams:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+          nullable: true
+        option_values:
+          type: array
+          items:
+            $ref: '#/components/schemas/StorefrontVariantOptionValue'
+          readOnly: true
+      required:
+      - currency
+      - id
+      - option_values
+      - price_amount
+      - sku
+    StorefrontVariantOptionValue:
+      type: object
+      properties:
+        option_name:
+          type: string
+          readOnly: true
+        value:
+          type: string
+          readOnly: true
+      required:
+      - option_name
+      - value
+    Subscription:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        store_id:
+          type: string
+          format: uuid
+          readOnly: true
+        status:
+          allOf:
+          - $ref: '#/components/schemas/Status3a5Enum'
+          readOnly: true
+        billing_interval:
+          allOf:
+          - $ref: '#/components/schemas/BillingIntervalEnum'
+          readOnly: true
+        plan_code:
+          type: string
+          readOnly: true
+        plan_version_number:
+          type: integer
+          readOnly: true
+        current_period_start:
+          type: string
+          format: date-time
+          readOnly: true
+        current_period_end:
+          type: string
+          format: date-time
+          readOnly: true
+        trial_ends_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+        past_due_since:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+        cancel_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - billing_interval
+      - cancel_at
+      - created_at
+      - current_period_end
+      - current_period_start
+      - id
+      - past_due_since
+      - plan_code
+      - plan_version_number
+      - status
+      - store_id
+      - trial_ends_at
+    SubscriptionStatus:
+      type: object
+      description: |-
+        Phase 12 (dashboard subscription-status UI). Read-only -- writes
+        to Subscription remain `apps.subscriptions.services.upgrade_subscription`/
+        `schedule_downgrade`, not exposed over HTTP yet (no reviewed
+        self-service upgrade/downgrade UI architecture exists, approved
+        Phase 10 technical debt, docs/PHASE_10_REPORT.md).
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        status:
+          allOf:
+          - $ref: '#/components/schemas/Status3a5Enum'
+          readOnly: true
+        billing_interval:
+          allOf:
+          - $ref: '#/components/schemas/BillingIntervalEnum'
+          readOnly: true
+        current_period_start:
+          type: string
+          format: date-time
+          readOnly: true
+        current_period_end:
+          type: string
+          format: date-time
+          readOnly: true
+        trial_ends_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+        cancel_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+        plan_code:
+          type: string
+          readOnly: true
+        plan_name:
+          type: string
+          readOnly: true
+        price_monthly:
+          type: integer
+          readOnly: true
+        price_yearly:
+          type: integer
+          readOnly: true
+        currency:
+          type: string
+          readOnly: true
+      required:
+      - billing_interval
+      - cancel_at
+      - currency
+      - current_period_end
+      - current_period_start
+      - id
+      - plan_code
+      - plan_name
+      - price_monthly
+      - price_yearly
+      - status
+      - trial_ends_at
+    Supplier:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        name:
+          type: string
+          maxLength: 255
+        provider:
+          $ref: '#/components/schemas/ProviderEnum'
+        is_active:
+          type: boolean
+        pricing_strategy:
+          $ref: '#/components/schemas/PricingStrategyEnum'
+        pricing_value:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+        min_profit_amount:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+          description: Minor units. Suggested price never yields less profit than
+            this.
+        last_synced_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - created_at
+      - id
+      - last_synced_at
+      - name
+    SupplierProduct:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        supplier:
+          type: string
+          format: uuid
+          readOnly: true
+        external_id:
+          type: string
+          readOnly: true
+        name:
+          type: string
+          readOnly: true
+        cost_amount:
+          type: integer
+          readOnly: true
+          description: Minor units.
+        currency:
+          type: string
+          readOnly: true
+        supplier_stock:
+          type: integer
+          readOnly: true
+        status:
+          allOf:
+          - $ref: '#/components/schemas/SupplierProductStatusEnum'
+          readOnly: true
+        imported_variant:
+          type: string
+          format: uuid
+          readOnly: true
+          nullable: true
+        suggested_price_amount:
+          type: integer
+          readOnly: true
+      required:
+      - cost_amount
+      - currency
+      - external_id
+      - id
+      - imported_variant
+      - name
+      - status
+      - suggested_price_amount
+      - supplier
+      - supplier_stock
+    SupplierProductStatusEnum:
+      enum:
+      - staged
+      - imported
+      - ignored
+      type: string
+      description: |-
+        * `staged` - Staged
+        * `imported` - Imported
+        * `ignored` - Ignored
+    SupplierRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 255
+        provider:
+          $ref: '#/components/schemas/ProviderEnum'
+        is_active:
+          type: boolean
+        pricing_strategy:
+          $ref: '#/components/schemas/PricingStrategyEnum'
+        pricing_value:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+        min_profit_amount:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+          description: Minor units. Suggested price never yields less profit than
+            this.
+      required:
+      - name
+    ThemePreset:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        name:
+          type: string
+          readOnly: true
+        default_settings:
+          readOnly: true
+        preview_image_url:
+          type: string
+          format: uri
+          readOnly: true
+        is_default:
+          type: boolean
+          readOnly: true
+        theme_code:
+          type: string
+          readOnly: true
+        theme_version_number:
+          type: integer
+          readOnly: true
+      required:
+      - default_settings
+      - id
+      - is_default
+      - name
+      - preview_image_url
+      - theme_code
+      - theme_version_number
+    VariantOptionValue:
+      type: object
+      properties:
+        option_name:
+          type: string
+          readOnly: true
+        value:
+          type: string
+          readOnly: true
+      required:
+      - option_name
+      - value
+  securitySchemes:
+    platformJwtAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT

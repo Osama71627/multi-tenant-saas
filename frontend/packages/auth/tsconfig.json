@@ -1,0 +1,14 @@
+{
+  "extends": "@saas/config/tsconfig-base.json",
+  "compilerOptions": {
+    // "DOM" is needed for the Fetch API's ambient types (RequestInit,
+    // BodyInit, Response, ...) -- this package is server-only Node code
+    // (never runs in a browser), but `fetch` itself is a Node global
+    // since Node 18 and TypeScript's stdlib still ships its type
+    // declarations under the "DOM" lib, not "ES2022".
+    "lib": ["ES2022", "DOM"],
+    "types": ["node"],
+    "noEmit": true
+  },
+  "include": ["src"]
+}

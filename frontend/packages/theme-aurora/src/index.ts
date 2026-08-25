@@ -1,0 +1,9 @@
+export { AuroraCategoriesSection } from "./categories-section";
+export { AuroraFeaturedProducts } from "./featured-products";
+export { AuroraFooter } from "./footer";
+export { AuroraHeader } from "./header";
+export { AuroraHero } from "./hero";
+export { AuroraNewsletter } from "./newsletter";
+export { AuroraProductCard } from "./product-card";
+export { auroraCssVars } from "./theme-vars";
+export type { AuroraCategory, AuroraProductListItem, AuroraSettings } from "./types";
