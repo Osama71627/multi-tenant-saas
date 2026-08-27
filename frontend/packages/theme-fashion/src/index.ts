@@ -1,0 +1,10 @@
+export { FashionCategoriesSection } from "./categories-section";
+export { FashionFeaturedProducts } from "./featured-products";
+export { FashionFooter } from "./footer";
+export { FashionHeader } from "./header";
+export { FashionHero } from "./hero";
+export { FashionNewsletter } from "./newsletter";
+export { FashionProductCard } from "./product-card";
+export { FashionProductGrid } from "./product-grid";
+export { fashionCssVars } from "./theme-vars";
+export type { FashionCategory, FashionProductListItem, FashionSettings } from "./types";

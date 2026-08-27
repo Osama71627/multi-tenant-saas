@@ -57,6 +57,12 @@ class Theme(BaseModel, TimeStampedModel):
 
     code = models.SlugField(max_length=64, unique=True)
     name = models.CharField(max_length=255)
+    # Human-readable label for the public theme marketplace card
+    # ("Fashion & Apparel", "Electronics", ...) -- Phase B addition, see
+    # migrations/0003_theme_category_and_new_themes.py. Plain text, not
+    # an FK to a Category model: today it's a 1:1 label per theme with
+    # no taxonomy requirement behind it yet.
+    category = models.CharField(max_length=100, blank=True, default="")
     is_active = models.BooleanField(default=True)
 
     class Meta:

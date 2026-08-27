@@ -30,15 +30,10 @@ export default async function ProductsPage({
           <p className="mt-1 text-sm text-gray-500">{t("noProductsDescription")}</p>
         </div>
       ) : (
-        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
-          {products.map((product) => (
-            <theme.ProductCard
-              key={product.id}
-              product={product}
-              href={`/${locale}/products/${product.slug}`}
-            />
-          ))}
-        </div>
+        <theme.ProductGrid
+          products={products}
+          productHref={(slug) => `/${locale}/products/${slug}`}
+        />
       )}
     </div>
   );

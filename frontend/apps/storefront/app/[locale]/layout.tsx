@@ -1,6 +1,5 @@
 import "@saas/ui/globals.css";
 import { directionForLocale, locales, type Locale } from "@saas/i18n";
-import { auroraCssVars } from "@saas/theme-aurora";
 import { NextIntlClientProvider } from "next-intl";
 import { getMessages } from "next-intl/server";
 import { notFound } from "next/navigation";
@@ -8,7 +7,7 @@ import type { ReactNode } from "react";
 
 import { CartLink } from "@/components/cart-link";
 import { QueryProvider } from "@/components/query-provider";
-import { getTheme } from "@/components/theme-registry";
+import { getCssVars, getTheme } from "@/components/theme-registry";
 import { FONT_VARIABLES } from "@/lib/fonts";
 import { getStorefrontContext } from "@/lib/theme";
 
@@ -43,7 +42,7 @@ export default async function LocaleLayout({
     <html lang={locale} dir={dir} suppressHydrationWarning className={FONT_VARIABLES}>
       <body
         className="min-h-screen bg-white font-sans antialiased"
-        style={{ ...auroraCssVars(settings), fontFamily: "var(--font-sans)" }}
+        style={{ ...getCssVars(context.theme.theme_code, settings), fontFamily: "var(--font-sans)" }}
       >
         <NextIntlClientProvider messages={messages}>
           <QueryProvider>

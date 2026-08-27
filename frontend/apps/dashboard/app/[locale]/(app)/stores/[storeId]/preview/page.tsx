@@ -1,12 +1,11 @@
 import { Badge } from "@saas/ui/badge";
 import type { AuroraSettings } from "@saas/theme-aurora";
-import { auroraCssVars } from "@saas/theme-aurora";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { FIXTURE_CATEGORIES, FIXTURE_PRODUCTS } from "@/components/preview/fixture-catalog";
 import { PreviewTabs } from "@/components/preview/preview-tabs";
-import { getTheme } from "@/components/preview/theme-registry";
+import { getCssVars, getTheme } from "@/components/preview/theme-registry";
 import { PREVIEW_FONT_VARIABLES } from "@/lib/preview-fonts";
 import { serverFetch } from "@/lib/session";
 
@@ -67,19 +66,12 @@ export default async function StorePreviewPage({
 
   const catalogPanel = (
     <div className="mx-auto max-w-6xl px-4 py-10">
-      {/* Deliberately a fixed 2-column grid here (not the real
-          storefront's `sm:grid-cols-3 lg:grid-cols-4`) -- this panel
-          sits inside a width-CONSTRAINED div, not a real narrower
-          browser viewport, so Tailwind's viewport-based breakpoints
-          wouldn't respond to it anyway (they'd still see the dashboard's
-          actual, usually-desktop-width window). 2 columns reads fine at
-          both preview widths without pretending to be a pixel-accurate
-          breakpoint simulation. */}
-      <div className="grid grid-cols-2 gap-4">
-        {FIXTURE_PRODUCTS.map((product) => (
-          <theme.ProductCard key={product.id} product={product} href="#" />
-        ))}
-      </div>
+      {/* Uses the theme's own ProductGrid (Phase B) -- its
+          viewport-based breakpoints won't respond to this
+          width-constrained panel the same way a real browser viewport
+          would, but the grid's actual density/spacing per theme still
+          renders correctly, which is what this panel is for. */}
+      <theme.ProductGrid products={FIXTURE_PRODUCTS} productHref={() => "#"} />
     </div>
   );
 
@@ -146,7 +138,7 @@ export default async function StorePreviewPage({
       </div>
       <div
         className={`flex flex-1 flex-col overflow-hidden ${PREVIEW_FONT_VARIABLES}`}
-        style={{ ...auroraCssVars(settings), fontFamily: "var(--font-sans)" }}
+        style={{ ...getCssVars(themeConfig.theme_code, settings), fontFamily: "var(--font-sans)" }}
       >
         <theme.Header
           storeName={store.name}

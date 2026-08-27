@@ -1,0 +1,10 @@
+export { LuxuryCategoriesSection } from "./categories-section";
+export { LuxuryFeaturedProducts } from "./featured-products";
+export { LuxuryFooter } from "./footer";
+export { LuxuryHeader } from "./header";
+export { LuxuryHero } from "./hero";
+export { LuxuryNewsletter } from "./newsletter";
+export { LuxuryProductCard } from "./product-card";
+export { LuxuryProductGrid } from "./product-grid";
+export { luxuryCssVars } from "./theme-vars";
+export type { LuxuryCategory, LuxuryProductListItem, LuxurySettings } from "./types";

@@ -1,0 +1,10 @@
+export { ElectronicsCategoriesSection } from "./categories-section";
+export { ElectronicsFeaturedProducts } from "./featured-products";
+export { ElectronicsFooter } from "./footer";
+export { ElectronicsHeader } from "./header";
+export { ElectronicsHero } from "./hero";
+export { ElectronicsNewsletter } from "./newsletter";
+export { ElectronicsProductCard } from "./product-card";
+export { ElectronicsProductGrid } from "./product-grid";
+export { electronicsCssVars } from "./theme-vars";
+export type { ElectronicsCategory, ElectronicsProductListItem, ElectronicsSettings } from "./types";

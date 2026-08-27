@@ -5,9 +5,9 @@ info:
 paths:
   /api/v1/auth/email/verify/confirm:
     post:
-      operationId: v1_auth_email_verify_confirm_create
+      operationId: api_v1_auth_email_verify_confirm_create
       tags:
-      - v1
+      - api
       security:
       - platformJwtAuth: []
       - {}
@@ -16,9 +16,9 @@ paths:
           description: No response body
   /api/v1/auth/email/verify/resend:
     post:
-      operationId: v1_auth_email_verify_resend_create
+      operationId: api_v1_auth_email_verify_resend_create
       tags:
-      - v1
+      - api
       security:
       - platformJwtAuth: []
       responses:
@@ -26,7 +26,7 @@ paths:
           description: No response body
   /api/v1/auth/login:
     post:
-      operationId: v1_auth_login_create
+      operationId: api_v1_auth_login_create
       description: |-
         Wraps SimpleJWT's TokenObtainPairView with the brute-force lockout
         from apps.accounts.lockout -- locked on (email, IP), see that
@@ -38,7 +38,7 @@ paths:
         two-step design. Ordinary accounts are completely unaffected and keep
         the exact single-step flow this view always had.
       tags:
-      - v1
+      - api
       requestBody:
         content:
           application/json:
@@ -58,9 +58,9 @@ paths:
           description: No response body
   /api/v1/auth/logout:
     post:
-      operationId: v1_auth_logout_create
+      operationId: api_v1_auth_logout_create
       tags:
-      - v1
+      - api
       security:
       - platformJwtAuth: []
       responses:
@@ -68,9 +68,9 @@ paths:
           description: No response body
   /api/v1/auth/me:
     get:
-      operationId: v1_auth_me_retrieve
+      operationId: api_v1_auth_me_retrieve
       tags:
-      - v1
+      - api
       security:
       - platformJwtAuth: []
       responses:
@@ -78,13 +78,13 @@ paths:
           description: No response body
   /api/v1/auth/mfa/enroll/confirm:
     post:
-      operationId: v1_auth_mfa_enroll_confirm_create
+      operationId: api_v1_auth_mfa_enroll_confirm_create
       description: |-
         Second step of enrollment: {challenge_token, code} -> confirms the
         pending device, issues one-time recovery codes (returned RAW here,
         exactly once), and completes login with a full JWT (mfa=True).
       tags:
-      - v1
+      - api
       security:
       - platformJwtAuth: []
       - {}
@@ -93,14 +93,14 @@ paths:
           description: No response body
   /api/v1/auth/mfa/enroll/start:
     post:
-      operationId: v1_auth_mfa_enroll_start_create
+      operationId: api_v1_auth_mfa_enroll_start_create
       description: |-
         First step of enrollment (only reachable with a valid challenge from
         a login that returned `state: mfa_setup_required`): generates a
         pending TOTP secret and returns it for manual entry into an
         authenticator app, plus the equivalent `otpauth://` URI.
       tags:
-      - v1
+      - api
       security:
       - platformJwtAuth: []
       - {}
@@ -109,13 +109,13 @@ paths:
           description: No response body
   /api/v1/auth/mfa/verify:
     post:
-      operationId: v1_auth_mfa_verify_create
+      operationId: api_v1_auth_mfa_verify_create
       description: |-
         Second step of platform-staff login for an already-enrolled device:
         {challenge_token, code} -> full JWT (mfa=True). `code` may be a 6-digit
         TOTP code or a recovery code (see `_looks_like_recovery_code`).
       tags:
-      - v1
+      - api
       security:
       - platformJwtAuth: []
       - {}
@@ -124,9 +124,9 @@ paths:
           description: No response body
   /api/v1/auth/password/reset:
     post:
-      operationId: v1_auth_password_reset_create
+      operationId: api_v1_auth_password_reset_create
       tags:
-      - v1
+      - api
       security:
       - platformJwtAuth: []
       - {}
@@ -135,9 +135,9 @@ paths:
           description: No response body
   /api/v1/auth/password/reset/confirm:
     post:
-      operationId: v1_auth_password_reset_confirm_create
+      operationId: api_v1_auth_password_reset_confirm_create
       tags:
-      - v1
+      - api
       security:
       - platformJwtAuth: []
       - {}
@@ -146,12 +146,12 @@ paths:
           description: No response body
   /api/v1/auth/refresh:
     post:
-      operationId: v1_auth_refresh_create
+      operationId: api_v1_auth_refresh_create
       description: |-
         Takes a refresh type JSON web token and returns an access type JSON web
         token if the refresh token is valid.
       tags:
-      - v1
+      - api
       requestBody:
         content:
           application/json:
@@ -175,9 +175,9 @@ paths:
           description: ''
   /api/v1/auth/register:
     post:
-      operationId: v1_auth_register_create
+      operationId: api_v1_auth_register_create
       tags:
-      - v1
+      - api
       security:
       - platformJwtAuth: []
       - {}
@@ -186,7 +186,7 @@ paths:
           description: No response body
   /api/v1/dashboard/stores:
     get:
-      operationId: v1_dashboard_stores_list
+      operationId: api_v1_dashboard_stores_list
       description: |-
         `GET /api/v1/dashboard/stores` -- the store switcher's data source
         (docs/ARCHITECTURE.md section 7.3): stores the current user has an
@@ -194,7 +194,7 @@ paths:
         for why this is a legitimate cross-tenant read. `POST` is the
         existing store-provisioning endpoint, unchanged.
       tags:
-      - v1
+      - api
       security:
       - platformJwtAuth: []
       responses:
@@ -207,7 +207,7 @@ paths:
                   $ref: '#/components/schemas/StoreListItem'
           description: ''
     post:
-      operationId: v1_dashboard_stores_create
+      operationId: api_v1_dashboard_stores_create
       description: |-
         `GET /api/v1/dashboard/stores` -- the store switcher's data source
         (docs/ARCHITECTURE.md section 7.3): stores the current user has an
@@ -215,7 +215,7 @@ paths:
         for why this is a legitimate cross-tenant read. `POST` is the
         existing store-provisioning endpoint, unchanged.
       tags:
-      - v1
+      - api
       requestBody:
         content:
           application/json:
@@ -239,7 +239,7 @@ paths:
           description: ''
   /api/v1/dashboard/stores/{store_id}:
     get:
-      operationId: v1_dashboard_stores_retrieve
+      operationId: api_v1_dashboard_stores_retrieve
       description: '404 vs 403 semantics, and why: apps/stores/mixins.py:StoreScopedAPIView.'
       parameters:
       - in: path
@@ -249,7 +249,7 @@ paths:
           format: uuid
         required: true
       tags:
-      - v1
+      - api
       security:
       - platformJwtAuth: []
       responses:
@@ -260,7 +260,7 @@ paths:
                 $ref: '#/components/schemas/StoreDetail'
           description: ''
     patch:
-      operationId: v1_dashboard_stores_partial_update
+      operationId: api_v1_dashboard_stores_partial_update
       description: '404 vs 403 semantics, and why: apps/stores/mixins.py:StoreScopedAPIView.'
       parameters:
       - in: path
@@ -270,7 +270,7 @@ paths:
           format: uuid
         required: true
       tags:
-      - v1
+      - api
       requestBody:
         content:
           application/json:
@@ -293,7 +293,7 @@ paths:
           description: ''
   /api/v1/dashboard/stores/{store_id}/analytics/overview:
     get:
-      operationId: v1_dashboard_stores_analytics_overview_retrieve
+      operationId: api_v1_dashboard_stores_analytics_overview_retrieve
       description: |-
         Base class for any `/api/v1/dashboard/stores/<uuid:store_id>/...`
         endpoint. Relies on `TenantMiddleware` having already resolved the
@@ -317,7 +317,7 @@ paths:
           format: uuid
         required: true
       tags:
-      - v1
+      - api
       security:
       - platformJwtAuth: []
       responses:
@@ -330,7 +330,7 @@ paths:
           description: ''
   /api/v1/dashboard/stores/{store_id}/categories:
     get:
-      operationId: v1_dashboard_stores_categories_retrieve
+      operationId: api_v1_dashboard_stores_categories_retrieve
       description: |-
         Base class for any `/api/v1/dashboard/stores/<uuid:store_id>/...`
         endpoint. Relies on `TenantMiddleware` having already resolved the
@@ -354,14 +354,14 @@ paths:
           format: uuid
         required: true
       tags:
-      - v1
+      - api
       security:
       - platformJwtAuth: []
       responses:
         '200':
           description: No response body
     post:
-      operationId: v1_dashboard_stores_categories_create
+      operationId: api_v1_dashboard_stores_categories_create
       description: |-
         Base class for any `/api/v1/dashboard/stores/<uuid:store_id>/...`
         endpoint. Relies on `TenantMiddleware` having already resolved the
@@ -385,7 +385,7 @@ paths:
           format: uuid
         required: true
       tags:
-      - v1
+      - api
       security:
       - platformJwtAuth: []
       responses:
@@ -393,7 +393,7 @@ paths:
           description: No response body
   /api/v1/dashboard/stores/{store_id}/inventory/adjust:
     post:
-      operationId: v1_dashboard_stores_inventory_adjust_create
+      operationId: api_v1_dashboard_stores_inventory_adjust_create
       description: |-
         Base class for any `/api/v1/dashboard/stores/<uuid:store_id>/...`
         endpoint. Relies on `TenantMiddleware` having already resolved the
@@ -417,7 +417,7 @@ paths:
           format: uuid
         required: true
       tags:
-      - v1
+      - api
       requestBody:
         content:
           application/json:
@@ -441,7 +441,7 @@ paths:
           description: ''
   /api/v1/dashboard/stores/{store_id}/inventory/balances:
     get:
-      operationId: v1_dashboard_stores_inventory_balances_list
+      operationId: api_v1_dashboard_stores_inventory_balances_list
       description: |-
         Base class for any `/api/v1/dashboard/stores/<uuid:store_id>/...`
         endpoint. Relies on `TenantMiddleware` having already resolved the
@@ -465,7 +465,7 @@ paths:
           format: uuid
         required: true
       tags:
-      - v1
+      - api
       security:
       - platformJwtAuth: []
       responses:
@@ -479,7 +479,7 @@ paths:
           description: ''
   /api/v1/dashboard/stores/{store_id}/inventory/locations:
     get:
-      operationId: v1_dashboard_stores_inventory_locations_list
+      operationId: api_v1_dashboard_stores_inventory_locations_list
       description: |-
         Base class for any `/api/v1/dashboard/stores/<uuid:store_id>/...`
         endpoint. Relies on `TenantMiddleware` having already resolved the
@@ -503,7 +503,7 @@ paths:
           format: uuid
         required: true
       tags:
-      - v1
+      - api
       security:
       - platformJwtAuth: []
       responses:
@@ -516,7 +516,7 @@ paths:
                   $ref: '#/components/schemas/StockLocation'
           description: ''
     post:
-      operationId: v1_dashboard_stores_inventory_locations_create
+      operationId: api_v1_dashboard_stores_inventory_locations_create
       description: |-
         Base class for any `/api/v1/dashboard/stores/<uuid:store_id>/...`
         endpoint. Relies on `TenantMiddleware` having already resolved the
@@ -540,7 +540,7 @@ paths:
           format: uuid
         required: true
       tags:
-      - v1
+      - api
       requestBody:
         content:
           application/json:
@@ -564,7 +564,7 @@ paths:
           description: ''
   /api/v1/dashboard/stores/{store_id}/inventory/movements:
     get:
-      operationId: v1_dashboard_stores_inventory_movements_retrieve
+      operationId: api_v1_dashboard_stores_inventory_movements_retrieve
       description: |-
         Base class for any `/api/v1/dashboard/stores/<uuid:store_id>/...`
         endpoint. Relies on `TenantMiddleware` having already resolved the
@@ -588,7 +588,7 @@ paths:
           format: uuid
         required: true
       tags:
-      - v1
+      - api
       security:
       - platformJwtAuth: []
       responses:
@@ -596,7 +596,7 @@ paths:
           description: No response body
   /api/v1/dashboard/stores/{store_id}/orders:
     get:
-      operationId: v1_dashboard_stores_orders_list
+      operationId: api_v1_dashboard_stores_orders_list
       description: |-
         Base class for any `/api/v1/dashboard/stores/<uuid:store_id>/...`
         endpoint. Relies on `TenantMiddleware` having already resolved the
@@ -620,7 +620,7 @@ paths:
           format: uuid
         required: true
       tags:
-      - v1
+      - api
       security:
       - platformJwtAuth: []
       responses:
@@ -634,7 +634,7 @@ paths:
           description: ''
   /api/v1/dashboard/stores/{store_id}/orders/{order_id}:
     get:
-      operationId: v1_dashboard_stores_orders_retrieve
+      operationId: api_v1_dashboard_stores_orders_retrieve
       description: |-
         Base class for any `/api/v1/dashboard/stores/<uuid:store_id>/...`
         endpoint. Relies on `TenantMiddleware` having already resolved the
@@ -664,7 +664,7 @@ paths:
           format: uuid
         required: true
       tags:
-      - v1
+      - api
       security:
       - platformJwtAuth: []
       responses:
@@ -676,7 +676,7 @@ paths:
           description: ''
   /api/v1/dashboard/stores/{store_id}/payment-intents/{payment_intent_id}/capture-cod:
     post:
-      operationId: v1_dashboard_stores_payment_intents_capture_cod_create
+      operationId: api_v1_dashboard_stores_payment_intents_capture_cod_create
       description: |-
         Base class for any `/api/v1/dashboard/stores/<uuid:store_id>/...`
         endpoint. Relies on `TenantMiddleware` having already resolved the
@@ -706,7 +706,7 @@ paths:
           format: uuid
         required: true
       tags:
-      - v1
+      - api
       security:
       - platformJwtAuth: []
       responses:
@@ -714,7 +714,7 @@ paths:
           description: No response body
   /api/v1/dashboard/stores/{store_id}/payments/providers:
     get:
-      operationId: v1_dashboard_stores_payments_providers_list
+      operationId: api_v1_dashboard_stores_payments_providers_list
       description: |-
         Base class for any `/api/v1/dashboard/stores/<uuid:store_id>/...`
         endpoint. Relies on `TenantMiddleware` having already resolved the
@@ -738,7 +738,7 @@ paths:
           format: uuid
         required: true
       tags:
-      - v1
+      - api
       security:
       - platformJwtAuth: []
       responses:
@@ -751,7 +751,7 @@ paths:
                   $ref: '#/components/schemas/StoreProviderConfig'
           description: ''
     post:
-      operationId: v1_dashboard_stores_payments_providers_create
+      operationId: api_v1_dashboard_stores_payments_providers_create
       description: |-
         Base class for any `/api/v1/dashboard/stores/<uuid:store_id>/...`
         endpoint. Relies on `TenantMiddleware` having already resolved the
@@ -775,7 +775,7 @@ paths:
           format: uuid
         required: true
       tags:
-      - v1
+      - api
       requestBody:
         content:
           application/json:
@@ -799,7 +799,7 @@ paths:
           description: ''
   /api/v1/dashboard/stores/{store_id}/pricing/coupons:
     get:
-      operationId: v1_dashboard_stores_pricing_coupons_retrieve
+      operationId: api_v1_dashboard_stores_pricing_coupons_retrieve
       description: |-
         Base class for any `/api/v1/dashboard/stores/<uuid:store_id>/...`
         endpoint. Relies on `TenantMiddleware` having already resolved the
@@ -823,14 +823,14 @@ paths:
           format: uuid
         required: true
       tags:
-      - v1
+      - api
       security:
       - platformJwtAuth: []
       responses:
         '200':
           description: No response body
     post:
-      operationId: v1_dashboard_stores_pricing_coupons_create
+      operationId: api_v1_dashboard_stores_pricing_coupons_create
       description: |-
         Base class for any `/api/v1/dashboard/stores/<uuid:store_id>/...`
         endpoint. Relies on `TenantMiddleware` having already resolved the
@@ -854,7 +854,7 @@ paths:
           format: uuid
         required: true
       tags:
-      - v1
+      - api
       security:
       - platformJwtAuth: []
       responses:
@@ -862,7 +862,7 @@ paths:
           description: No response body
   /api/v1/dashboard/stores/{store_id}/pricing/tax-rates:
     get:
-      operationId: v1_dashboard_stores_pricing_tax_rates_retrieve
+      operationId: api_v1_dashboard_stores_pricing_tax_rates_retrieve
       description: |-
         Base class for any `/api/v1/dashboard/stores/<uuid:store_id>/...`
         endpoint. Relies on `TenantMiddleware` having already resolved the
@@ -886,14 +886,14 @@ paths:
           format: uuid
         required: true
       tags:
-      - v1
+      - api
       security:
       - platformJwtAuth: []
       responses:
         '200':
           description: No response body
     post:
-      operationId: v1_dashboard_stores_pricing_tax_rates_create
+      operationId: api_v1_dashboard_stores_pricing_tax_rates_create
       description: |-
         Base class for any `/api/v1/dashboard/stores/<uuid:store_id>/...`
         endpoint. Relies on `TenantMiddleware` having already resolved the
@@ -917,7 +917,7 @@ paths:
           format: uuid
         required: true
       tags:
-      - v1
+      - api
       security:
       - platformJwtAuth: []
       responses:
@@ -925,7 +925,7 @@ paths:
           description: No response body
   /api/v1/dashboard/stores/{store_id}/products:
     get:
-      operationId: v1_dashboard_stores_products_list
+      operationId: api_v1_dashboard_stores_products_list
       description: |-
         Base class for any `/api/v1/dashboard/stores/<uuid:store_id>/...`
         endpoint. Relies on `TenantMiddleware` having already resolved the
@@ -949,7 +949,7 @@ paths:
           format: uuid
         required: true
       tags:
-      - v1
+      - api
       security:
       - platformJwtAuth: []
       responses:
@@ -962,7 +962,7 @@ paths:
                   $ref: '#/components/schemas/Product'
           description: ''
     post:
-      operationId: v1_dashboard_stores_products_create
+      operationId: api_v1_dashboard_stores_products_create
       description: |-
         Base class for any `/api/v1/dashboard/stores/<uuid:store_id>/...`
         endpoint. Relies on `TenantMiddleware` having already resolved the
@@ -986,7 +986,7 @@ paths:
           format: uuid
         required: true
       tags:
-      - v1
+      - api
       requestBody:
         content:
           application/json:
@@ -1010,7 +1010,7 @@ paths:
           description: ''
   /api/v1/dashboard/stores/{store_id}/products/{product_id}:
     get:
-      operationId: v1_dashboard_stores_products_retrieve
+      operationId: api_v1_dashboard_stores_products_retrieve
       description: |-
         Base class for any `/api/v1/dashboard/stores/<uuid:store_id>/...`
         endpoint. Relies on `TenantMiddleware` having already resolved the
@@ -1040,7 +1040,7 @@ paths:
           format: uuid
         required: true
       tags:
-      - v1
+      - api
       security:
       - platformJwtAuth: []
       responses:
@@ -1051,7 +1051,7 @@ paths:
                 $ref: '#/components/schemas/Product'
           description: ''
     patch:
-      operationId: v1_dashboard_stores_products_partial_update
+      operationId: api_v1_dashboard_stores_products_partial_update
       description: |-
         Base class for any `/api/v1/dashboard/stores/<uuid:store_id>/...`
         endpoint. Relies on `TenantMiddleware` having already resolved the
@@ -1081,7 +1081,7 @@ paths:
           format: uuid
         required: true
       tags:
-      - v1
+      - api
       requestBody:
         content:
           application/json:
@@ -1103,7 +1103,7 @@ paths:
                 $ref: '#/components/schemas/Product'
           description: ''
     delete:
-      operationId: v1_dashboard_stores_products_destroy
+      operationId: api_v1_dashboard_stores_products_destroy
       description: |-
         Base class for any `/api/v1/dashboard/stores/<uuid:store_id>/...`
         endpoint. Relies on `TenantMiddleware` having already resolved the
@@ -1133,7 +1133,7 @@ paths:
           format: uuid
         required: true
       tags:
-      - v1
+      - api
       security:
       - platformJwtAuth: []
       responses:
@@ -1141,7 +1141,7 @@ paths:
           description: No response body
   /api/v1/dashboard/stores/{store_id}/products/{product_id}/options:
     post:
-      operationId: v1_dashboard_stores_products_options_create
+      operationId: api_v1_dashboard_stores_products_options_create
       description: |-
         Base class for any `/api/v1/dashboard/stores/<uuid:store_id>/...`
         endpoint. Relies on `TenantMiddleware` having already resolved the
@@ -1171,7 +1171,7 @@ paths:
           format: uuid
         required: true
       tags:
-      - v1
+      - api
       security:
       - platformJwtAuth: []
       responses:
@@ -1179,7 +1179,7 @@ paths:
           description: No response body
   /api/v1/dashboard/stores/{store_id}/products/{product_id}/options/{option_id}/values:
     post:
-      operationId: v1_dashboard_stores_products_options_values_create
+      operationId: api_v1_dashboard_stores_products_options_values_create
       description: |-
         Base class for any `/api/v1/dashboard/stores/<uuid:store_id>/...`
         endpoint. Relies on `TenantMiddleware` having already resolved the
@@ -1215,7 +1215,7 @@ paths:
           format: uuid
         required: true
       tags:
-      - v1
+      - api
       security:
       - platformJwtAuth: []
       responses:
@@ -1223,7 +1223,7 @@ paths:
           description: No response body
   /api/v1/dashboard/stores/{store_id}/products/{product_id}/variants:
     post:
-      operationId: v1_dashboard_stores_products_variants_create
+      operationId: api_v1_dashboard_stores_products_variants_create
       description: |-
         Base class for any `/api/v1/dashboard/stores/<uuid:store_id>/...`
         endpoint. Relies on `TenantMiddleware` having already resolved the
@@ -1253,7 +1253,7 @@ paths:
           format: uuid
         required: true
       tags:
-      - v1
+      - api
       security:
       - platformJwtAuth: []
       responses:
@@ -1261,7 +1261,7 @@ paths:
           description: No response body
   /api/v1/dashboard/stores/{store_id}/products/{product_id}/variants/{variant_id}:
     delete:
-      operationId: v1_dashboard_stores_products_variants_destroy
+      operationId: api_v1_dashboard_stores_products_variants_destroy
       description: |-
         Base class for any `/api/v1/dashboard/stores/<uuid:store_id>/...`
         endpoint. Relies on `TenantMiddleware` having already resolved the
@@ -1297,7 +1297,7 @@ paths:
           format: uuid
         required: true
       tags:
-      - v1
+      - api
       security:
       - platformJwtAuth: []
       responses:
@@ -1305,7 +1305,7 @@ paths:
           description: No response body
   /api/v1/dashboard/stores/{store_id}/shipping/methods/{method_id}/rates:
     get:
-      operationId: v1_dashboard_stores_shipping_methods_rates_list
+      operationId: api_v1_dashboard_stores_shipping_methods_rates_list
       description: |-
         Base class for any `/api/v1/dashboard/stores/<uuid:store_id>/...`
         endpoint. Relies on `TenantMiddleware` having already resolved the
@@ -1335,7 +1335,7 @@ paths:
           format: uuid
         required: true
       tags:
-      - v1
+      - api
       security:
       - platformJwtAuth: []
       responses:
@@ -1348,7 +1348,7 @@ paths:
                   $ref: '#/components/schemas/ShippingRate'
           description: ''
     post:
-      operationId: v1_dashboard_stores_shipping_methods_rates_create
+      operationId: api_v1_dashboard_stores_shipping_methods_rates_create
       description: |-
         Base class for any `/api/v1/dashboard/stores/<uuid:store_id>/...`
         endpoint. Relies on `TenantMiddleware` having already resolved the
@@ -1378,7 +1378,7 @@ paths:
           format: uuid
         required: true
       tags:
-      - v1
+      - api
       requestBody:
         content:
           application/json:
@@ -1402,7 +1402,7 @@ paths:
           description: ''
   /api/v1/dashboard/stores/{store_id}/shipping/zones:
     get:
-      operationId: v1_dashboard_stores_shipping_zones_list
+      operationId: api_v1_dashboard_stores_shipping_zones_list
       description: |-
         Base class for any `/api/v1/dashboard/stores/<uuid:store_id>/...`
         endpoint. Relies on `TenantMiddleware` having already resolved the
@@ -1426,7 +1426,7 @@ paths:
           format: uuid
         required: true
       tags:
-      - v1
+      - api
       security:
       - platformJwtAuth: []
       responses:
@@ -1439,7 +1439,7 @@ paths:
                   $ref: '#/components/schemas/ShippingZone'
           description: ''
     post:
-      operationId: v1_dashboard_stores_shipping_zones_create
+      operationId: api_v1_dashboard_stores_shipping_zones_create
       description: |-
         Base class for any `/api/v1/dashboard/stores/<uuid:store_id>/...`
         endpoint. Relies on `TenantMiddleware` having already resolved the
@@ -1463,7 +1463,7 @@ paths:
           format: uuid
         required: true
       tags:
-      - v1
+      - api
       requestBody:
         content:
           application/json:
@@ -1487,7 +1487,7 @@ paths:
           description: ''
   /api/v1/dashboard/stores/{store_id}/shipping/zones/{zone_id}/methods:
     get:
-      operationId: v1_dashboard_stores_shipping_zones_methods_list
+      operationId: api_v1_dashboard_stores_shipping_zones_methods_list
       description: |-
         Base class for any `/api/v1/dashboard/stores/<uuid:store_id>/...`
         endpoint. Relies on `TenantMiddleware` having already resolved the
@@ -1517,7 +1517,7 @@ paths:
           format: uuid
         required: true
       tags:
-      - v1
+      - api
       security:
       - platformJwtAuth: []
       responses:
@@ -1530,7 +1530,7 @@ paths:
                   $ref: '#/components/schemas/ShippingMethod'
           description: ''
     post:
-      operationId: v1_dashboard_stores_shipping_zones_methods_create
+      operationId: api_v1_dashboard_stores_shipping_zones_methods_create
       description: |-
         Base class for any `/api/v1/dashboard/stores/<uuid:store_id>/...`
         endpoint. Relies on `TenantMiddleware` having already resolved the
@@ -1560,7 +1560,7 @@ paths:
           format: uuid
         required: true
       tags:
-      - v1
+      - api
       requestBody:
         content:
           application/json:
@@ -1584,7 +1584,7 @@ paths:
           description: ''
   /api/v1/dashboard/stores/{store_id}/subscription:
     get:
-      operationId: v1_dashboard_stores_subscription_retrieve
+      operationId: api_v1_dashboard_stores_subscription_retrieve
       description: |-
         Base class for any `/api/v1/dashboard/stores/<uuid:store_id>/...`
         endpoint. Relies on `TenantMiddleware` having already resolved the
@@ -1608,7 +1608,7 @@ paths:
           format: uuid
         required: true
       tags:
-      - v1
+      - api
       security:
       - platformJwtAuth: []
       responses:
@@ -1620,7 +1620,7 @@ paths:
           description: ''
   /api/v1/dashboard/stores/{store_id}/supplier-products/{supplier_product_id}/promote:
     post:
-      operationId: v1_dashboard_stores_supplier_products_promote_create
+      operationId: api_v1_dashboard_stores_supplier_products_promote_create
       description: |-
         Base class for any `/api/v1/dashboard/stores/<uuid:store_id>/...`
         endpoint. Relies on `TenantMiddleware` having already resolved the
@@ -1650,7 +1650,7 @@ paths:
           format: uuid
         required: true
       tags:
-      - v1
+      - api
       requestBody:
         content:
           application/json:
@@ -1675,7 +1675,7 @@ paths:
           description: ''
   /api/v1/dashboard/stores/{store_id}/suppliers:
     get:
-      operationId: v1_dashboard_stores_suppliers_list
+      operationId: api_v1_dashboard_stores_suppliers_list
       description: |-
         Base class for any `/api/v1/dashboard/stores/<uuid:store_id>/...`
         endpoint. Relies on `TenantMiddleware` having already resolved the
@@ -1699,7 +1699,7 @@ paths:
           format: uuid
         required: true
       tags:
-      - v1
+      - api
       security:
       - platformJwtAuth: []
       responses:
@@ -1712,7 +1712,7 @@ paths:
                   $ref: '#/components/schemas/Supplier'
           description: ''
     post:
-      operationId: v1_dashboard_stores_suppliers_create
+      operationId: api_v1_dashboard_stores_suppliers_create
       description: |-
         Base class for any `/api/v1/dashboard/stores/<uuid:store_id>/...`
         endpoint. Relies on `TenantMiddleware` having already resolved the
@@ -1736,7 +1736,7 @@ paths:
           format: uuid
         required: true
       tags:
-      - v1
+      - api
       requestBody:
         content:
           application/json:
@@ -1760,7 +1760,7 @@ paths:
           description: ''
   /api/v1/dashboard/stores/{store_id}/suppliers/{supplier_id}/products:
     get:
-      operationId: v1_dashboard_stores_suppliers_products_list
+      operationId: api_v1_dashboard_stores_suppliers_products_list
       description: |-
         Base class for any `/api/v1/dashboard/stores/<uuid:store_id>/...`
         endpoint. Relies on `TenantMiddleware` having already resolved the
@@ -1790,7 +1790,7 @@ paths:
           format: uuid
         required: true
       tags:
-      - v1
+      - api
       security:
       - platformJwtAuth: []
       responses:
@@ -1804,7 +1804,7 @@ paths:
           description: ''
   /api/v1/dashboard/stores/{store_id}/suppliers/{supplier_id}/sync:
     post:
-      operationId: v1_dashboard_stores_suppliers_sync_create
+      operationId: api_v1_dashboard_stores_suppliers_sync_create
       description: |-
         Base class for any `/api/v1/dashboard/stores/<uuid:store_id>/...`
         endpoint. Relies on `TenantMiddleware` having already resolved the
@@ -1834,7 +1834,7 @@ paths:
           format: uuid
         required: true
       tags:
-      - v1
+      - api
       security:
       - platformJwtAuth: []
       responses:
@@ -1848,7 +1848,7 @@ paths:
           description: ''
   /api/v1/dashboard/stores/{store_id}/tags:
     get:
-      operationId: v1_dashboard_stores_tags_retrieve
+      operationId: api_v1_dashboard_stores_tags_retrieve
       description: |-
         Base class for any `/api/v1/dashboard/stores/<uuid:store_id>/...`
         endpoint. Relies on `TenantMiddleware` having already resolved the
@@ -1872,14 +1872,14 @@ paths:
           format: uuid
         required: true
       tags:
-      - v1
+      - api
       security:
       - platformJwtAuth: []
       responses:
         '200':
           description: No response body
     post:
-      operationId: v1_dashboard_stores_tags_create
+      operationId: api_v1_dashboard_stores_tags_create
       description: |-
         Base class for any `/api/v1/dashboard/stores/<uuid:store_id>/...`
         endpoint. Relies on `TenantMiddleware` having already resolved the
@@ -1903,7 +1903,7 @@ paths:
           format: uuid
         required: true
       tags:
-      - v1
+      - api
       security:
       - platformJwtAuth: []
       responses:
@@ -1911,7 +1911,7 @@ paths:
           description: No response body
   /api/v1/dashboard/stores/{store_id}/theme:
     get:
-      operationId: v1_dashboard_stores_theme_retrieve
+      operationId: api_v1_dashboard_stores_theme_retrieve
       description: |-
         Base class for any `/api/v1/dashboard/stores/<uuid:store_id>/...`
         endpoint. Relies on `TenantMiddleware` having already resolved the
@@ -1935,7 +1935,7 @@ paths:
           format: uuid
         required: true
       tags:
-      - v1
+      - api
       security:
       - platformJwtAuth: []
       responses:
@@ -1947,9 +1947,9 @@ paths:
           description: ''
   /api/v1/dashboard/theme-presets:
     get:
-      operationId: v1_dashboard_theme_presets_list
+      operationId: api_v1_dashboard_theme_presets_list
       tags:
-      - v1
+      - api
       security:
       - platformJwtAuth: []
       responses:
@@ -1963,9 +1963,9 @@ paths:
           description: ''
   /api/v1/platform/audit-logs:
     get:
-      operationId: v1_platform_audit_logs_list
+      operationId: api_v1_platform_audit_logs_list
       tags:
-      - v1
+      - api
       security:
       - platformJwtAuth: []
       responses:
@@ -1979,9 +1979,9 @@ paths:
           description: ''
   /api/v1/platform/overview:
     get:
-      operationId: v1_platform_overview_retrieve
+      operationId: api_v1_platform_overview_retrieve
       tags:
-      - v1
+      - api
       security:
       - platformJwtAuth: []
       responses:
@@ -1994,9 +1994,9 @@ paths:
           description: ''
   /api/v1/platform/plans:
     get:
-      operationId: v1_platform_plans_list
+      operationId: api_v1_platform_plans_list
       tags:
-      - v1
+      - api
       security:
       - platformJwtAuth: []
       responses:
@@ -2009,9 +2009,9 @@ paths:
                   $ref: '#/components/schemas/Plan'
           description: ''
     post:
-      operationId: v1_platform_plans_create
+      operationId: api_v1_platform_plans_create
       tags:
-      - v1
+      - api
       requestBody:
         content:
           application/json:
@@ -2035,7 +2035,7 @@ paths:
           description: ''
   /api/v1/platform/plans/{plan_id}:
     get:
-      operationId: v1_platform_plans_retrieve
+      operationId: api_v1_platform_plans_retrieve
       parameters:
       - in: path
         name: plan_id
@@ -2044,7 +2044,7 @@ paths:
           format: uuid
         required: true
       tags:
-      - v1
+      - api
       security:
       - platformJwtAuth: []
       responses:
@@ -2056,7 +2056,7 @@ paths:
           description: ''
   /api/v1/platform/plans/{plan_id}/activate:
     post:
-      operationId: v1_platform_plans_activate_create
+      operationId: api_v1_platform_plans_activate_create
       parameters:
       - in: path
         name: plan_id
@@ -2065,7 +2065,7 @@ paths:
           format: uuid
         required: true
       tags:
-      - v1
+      - api
       security:
       - platformJwtAuth: []
       responses:
@@ -2077,7 +2077,7 @@ paths:
           description: ''
   /api/v1/platform/plans/{plan_id}/deactivate:
     post:
-      operationId: v1_platform_plans_deactivate_create
+      operationId: api_v1_platform_plans_deactivate_create
       parameters:
       - in: path
         name: plan_id
@@ -2086,7 +2086,7 @@ paths:
           format: uuid
         required: true
       tags:
-      - v1
+      - api
       security:
       - platformJwtAuth: []
       responses:
@@ -2098,7 +2098,7 @@ paths:
           description: ''
   /api/v1/platform/plans/{plan_id}/versions:
     post:
-      operationId: v1_platform_plans_versions_create
+      operationId: api_v1_platform_plans_versions_create
       parameters:
       - in: path
         name: plan_id
@@ -2107,7 +2107,7 @@ paths:
           format: uuid
         required: true
       tags:
-      - v1
+      - api
       requestBody:
         content:
           application/json:
@@ -2131,9 +2131,9 @@ paths:
           description: ''
   /api/v1/platform/stores:
     get:
-      operationId: v1_platform_stores_list
+      operationId: api_v1_platform_stores_list
       tags:
-      - v1
+      - api
       security:
       - platformJwtAuth: []
       responses:
@@ -2147,7 +2147,7 @@ paths:
           description: ''
   /api/v1/platform/stores/{store_id}:
     get:
-      operationId: v1_platform_stores_retrieve
+      operationId: api_v1_platform_stores_retrieve
       parameters:
       - in: path
         name: store_id
@@ -2156,7 +2156,7 @@ paths:
           format: uuid
         required: true
       tags:
-      - v1
+      - api
       security:
       - platformJwtAuth: []
       responses:
@@ -2168,7 +2168,7 @@ paths:
           description: ''
   /api/v1/platform/stores/{store_id}/activate:
     post:
-      operationId: v1_platform_stores_activate_create
+      operationId: api_v1_platform_stores_activate_create
       parameters:
       - in: path
         name: store_id
@@ -2177,7 +2177,7 @@ paths:
           format: uuid
         required: true
       tags:
-      - v1
+      - api
       security:
       - platformJwtAuth: []
       responses:
@@ -2189,7 +2189,7 @@ paths:
           description: ''
   /api/v1/platform/stores/{store_id}/suspend:
     post:
-      operationId: v1_platform_stores_suspend_create
+      operationId: api_v1_platform_stores_suspend_create
       parameters:
       - in: path
         name: store_id
@@ -2198,7 +2198,7 @@ paths:
           format: uuid
         required: true
       tags:
-      - v1
+      - api
       requestBody:
         content:
           application/json:
@@ -2221,9 +2221,9 @@ paths:
           description: ''
   /api/v1/platform/subscriptions:
     get:
-      operationId: v1_platform_subscriptions_list
+      operationId: api_v1_platform_subscriptions_list
       tags:
-      - v1
+      - api
       security:
       - platformJwtAuth: []
       responses:
@@ -2237,7 +2237,7 @@ paths:
           description: ''
   /api/v1/platform/subscriptions/{subscription_id}:
     get:
-      operationId: v1_platform_subscriptions_retrieve
+      operationId: api_v1_platform_subscriptions_retrieve
       parameters:
       - in: path
         name: subscription_id
@@ -2246,7 +2246,7 @@ paths:
           format: uuid
         required: true
       tags:
-      - v1
+      - api
       security:
       - platformJwtAuth: []
       responses:
@@ -2258,7 +2258,7 @@ paths:
           description: ''
   /api/v1/platform/subscriptions/{subscription_id}/activate:
     post:
-      operationId: v1_platform_subscriptions_activate_create
+      operationId: api_v1_platform_subscriptions_activate_create
       parameters:
       - in: path
         name: subscription_id
@@ -2267,7 +2267,7 @@ paths:
           format: uuid
         required: true
       tags:
-      - v1
+      - api
       security:
       - platformJwtAuth: []
       responses:
@@ -2279,7 +2279,7 @@ paths:
           description: ''
   /api/v1/platform/subscriptions/{subscription_id}/cancel:
     post:
-      operationId: v1_platform_subscriptions_cancel_create
+      operationId: api_v1_platform_subscriptions_cancel_create
       parameters:
       - in: path
         name: subscription_id
@@ -2288,7 +2288,7 @@ paths:
           format: uuid
         required: true
       tags:
-      - v1
+      - api
       security:
       - platformJwtAuth: []
       responses:
@@ -2300,9 +2300,9 @@ paths:
           description: ''
   /api/v1/platform/users:
     get:
-      operationId: v1_platform_users_list
+      operationId: api_v1_platform_users_list
       tags:
-      - v1
+      - api
       security:
       - platformJwtAuth: []
       responses:
@@ -2316,7 +2316,7 @@ paths:
           description: ''
   /api/v1/platform/users/{user_id}:
     get:
-      operationId: v1_platform_users_retrieve
+      operationId: api_v1_platform_users_retrieve
       parameters:
       - in: path
         name: user_id
@@ -2325,7 +2325,7 @@ paths:
           format: uuid
         required: true
       tags:
-      - v1
+      - api
       security:
       - platformJwtAuth: []
       responses:
@@ -2337,7 +2337,7 @@ paths:
           description: ''
   /api/v1/platform/users/{user_id}/mfa/reset:
     post:
-      operationId: v1_platform_users_mfa_reset_create
+      operationId: api_v1_platform_users_mfa_reset_create
       description: |-
         Explicit, audited privileged action -- see
         `services.reset_user_mfa`'s docstring for why this exists instead of
@@ -2350,7 +2350,7 @@ paths:
           format: uuid
         required: true
       tags:
-      - v1
+      - api
       security:
       - platformJwtAuth: []
       responses:
@@ -2358,11 +2358,11 @@ paths:
           description: No response body
   /api/v1/storefront/cart:
     get:
-      operationId: v1_storefront_cart_retrieve
+      operationId: api_v1_storefront_cart_retrieve
       description: Resolves/creates `self.cart` from the cart cookie, setting it on
         the way out if it's new.
       tags:
-      - v1
+      - api
       security:
       - platformJwtAuth: []
       - {}
@@ -2375,11 +2375,11 @@ paths:
           description: ''
   /api/v1/storefront/cart/coupon:
     post:
-      operationId: v1_storefront_cart_coupon_create
+      operationId: api_v1_storefront_cart_coupon_create
       description: Resolves/creates `self.cart` from the cart cookie, setting it on
         the way out if it's new.
       tags:
-      - v1
+      - api
       requestBody:
         content:
           application/json:
@@ -2403,11 +2403,11 @@ paths:
                 $ref: '#/components/schemas/Cart'
           description: ''
     delete:
-      operationId: v1_storefront_cart_coupon_destroy
+      operationId: api_v1_storefront_cart_coupon_destroy
       description: Resolves/creates `self.cart` from the cart cookie, setting it on
         the way out if it's new.
       tags:
-      - v1
+      - api
       security:
       - platformJwtAuth: []
       - {}
@@ -2416,11 +2416,11 @@ paths:
           description: No response body
   /api/v1/storefront/cart/items:
     post:
-      operationId: v1_storefront_cart_items_create
+      operationId: api_v1_storefront_cart_items_create
       description: Resolves/creates `self.cart` from the cart cookie, setting it on
         the way out if it's new.
       tags:
-      - v1
+      - api
       requestBody:
         content:
           application/json:
@@ -2445,7 +2445,7 @@ paths:
           description: ''
   /api/v1/storefront/cart/items/{item_id}:
     patch:
-      operationId: v1_storefront_cart_items_partial_update
+      operationId: api_v1_storefront_cart_items_partial_update
       description: Resolves/creates `self.cart` from the cart cookie, setting it on
         the way out if it's new.
       parameters:
@@ -2456,7 +2456,7 @@ paths:
           format: uuid
         required: true
       tags:
-      - v1
+      - api
       requestBody:
         content:
           application/json:
@@ -2479,7 +2479,7 @@ paths:
                 $ref: '#/components/schemas/Cart'
           description: ''
     delete:
-      operationId: v1_storefront_cart_items_destroy
+      operationId: api_v1_storefront_cart_items_destroy
       description: Resolves/creates `self.cart` from the cart cookie, setting it on
         the way out if it's new.
       parameters:
@@ -2490,7 +2490,7 @@ paths:
           format: uuid
         required: true
       tags:
-      - v1
+      - api
       security:
       - platformJwtAuth: []
       - {}
@@ -2499,11 +2499,11 @@ paths:
           description: No response body
   /api/v1/storefront/cart/reprice:
     post:
-      operationId: v1_storefront_cart_reprice_create
+      operationId: api_v1_storefront_cart_reprice_create
       description: Resolves/creates `self.cart` from the cart cookie, setting it on
         the way out if it's new.
       tags:
-      - v1
+      - api
       security:
       - platformJwtAuth: []
       - {}
@@ -2516,7 +2516,7 @@ paths:
           description: ''
   /api/v1/storefront/cart/shipping-quotes:
     get:
-      operationId: v1_storefront_cart_shipping_quotes_list
+      operationId: api_v1_storefront_cart_shipping_quotes_list
       description: |-
         Informational only -- see apps/shipping/models.py's module docstring
         (scope decision 2). Never a checkout prerequisite: nothing here is
@@ -2538,7 +2538,7 @@ paths:
         schema:
           type: string
       tags:
-      - v1
+      - api
       security:
       - platformJwtAuth: []
       - {}
@@ -2553,7 +2553,7 @@ paths:
           description: ''
   /api/v1/storefront/categories:
     get:
-      operationId: v1_storefront_categories_list
+      operationId: api_v1_storefront_categories_list
       description: |-
         Base class for any `/api/v1/storefront/...` endpoint. Relies on
         `TenantMiddleware` having resolved the request's Host header into
@@ -2569,7 +2569,7 @@ paths:
 
         Sets `self.store` for subclasses to use.
       tags:
-      - v1
+      - api
       security:
       - platformJwtAuth: []
       - {}
@@ -2584,11 +2584,11 @@ paths:
           description: ''
   /api/v1/storefront/checkout/address:
     post:
-      operationId: v1_storefront_checkout_address_create
+      operationId: api_v1_storefront_checkout_address_create
       description: Resolves/creates `self.cart` from the cart cookie, setting it on
         the way out if it's new.
       tags:
-      - v1
+      - api
       requestBody:
         content:
           application/json:
@@ -2613,11 +2613,11 @@ paths:
           description: ''
   /api/v1/storefront/checkout/complete:
     post:
-      operationId: v1_storefront_checkout_complete_create
+      operationId: api_v1_storefront_checkout_complete_create
       description: Resolves/creates `self.cart` from the cart cookie, setting it on
         the way out if it's new.
       tags:
-      - v1
+      - api
       security:
       - platformJwtAuth: []
       - {}
@@ -2630,11 +2630,11 @@ paths:
           description: ''
   /api/v1/storefront/checkout/shipping:
     post:
-      operationId: v1_storefront_checkout_shipping_create
+      operationId: api_v1_storefront_checkout_shipping_create
       description: Resolves/creates `self.cart` from the cart cookie, setting it on
         the way out if it's new.
       tags:
-      - v1
+      - api
       requestBody:
         content:
           application/json:
@@ -2659,11 +2659,11 @@ paths:
           description: ''
   /api/v1/storefront/checkout/start:
     post:
-      operationId: v1_storefront_checkout_start_create
+      operationId: api_v1_storefront_checkout_start_create
       description: Resolves/creates `self.cart` from the cart cookie, setting it on
         the way out if it's new.
       tags:
-      - v1
+      - api
       security:
       - platformJwtAuth: []
       - {}
@@ -2676,14 +2676,14 @@ paths:
           description: ''
   /api/v1/storefront/context:
     get:
-      operationId: v1_storefront_context_retrieve
+      operationId: api_v1_storefront_context_retrieve
       description: |-
         Phase 13: `GET /api/v1/storefront/context` -- the one call every
         storefront page needs before it can render anything (which store,
         which theme, which settings). Host-resolved like every other
         storefront endpoint; see `StorefrontAPIView`.
       tags:
-      - v1
+      - api
       security:
       - platformJwtAuth: []
       - {}
@@ -2696,7 +2696,7 @@ paths:
           description: ''
   /api/v1/storefront/inventory/availability:
     get:
-      operationId: v1_storefront_inventory_availability_retrieve
+      operationId: api_v1_storefront_inventory_availability_retrieve
       description: |-
         `GET .../storefront/inventory/availability?variant=<id>&variant=<id>` --
         Phase 13. Only ever returns a summed "available across all locations"
@@ -2714,7 +2714,7 @@ paths:
             type: string
         description: Repeatable -- one or more ProductVariant ids.
       tags:
-      - v1
+      - api
       security:
       - platformJwtAuth: []
       - {}
@@ -2728,7 +2728,7 @@ paths:
           description: ''
   /api/v1/storefront/payments/initiate:
     post:
-      operationId: v1_storefront_payments_initiate_create
+      operationId: api_v1_storefront_payments_initiate_create
       description: |-
         Base class for any `/api/v1/storefront/...` endpoint. Relies on
         `TenantMiddleware` having resolved the request's Host header into
@@ -2744,7 +2744,7 @@ paths:
 
         Sets `self.store` for subclasses to use.
       tags:
-      - v1
+      - api
       requestBody:
         content:
           application/json:
@@ -2769,12 +2769,12 @@ paths:
           description: ''
   /api/v1/storefront/payments/providers:
     get:
-      operationId: v1_storefront_payments_providers_list
+      operationId: api_v1_storefront_payments_providers_list
       description: |-
         `GET /api/v1/storefront/payments/providers` -- Phase 13's checkout
         payment-method picker. Only enabled providers, only `provider_key`.
       tags:
-      - v1
+      - api
       security:
       - platformJwtAuth: []
       - {}
@@ -2789,7 +2789,7 @@ paths:
           description: ''
   /api/v1/storefront/products:
     get:
-      operationId: v1_storefront_products_list
+      operationId: api_v1_storefront_products_list
       description: |-
         Base class for any `/api/v1/storefront/...` endpoint. Relies on
         `TenantMiddleware` having resolved the request's Host header into
@@ -2811,7 +2811,7 @@ paths:
           type: string
         description: Filter by category slug.
       tags:
-      - v1
+      - api
       security:
       - platformJwtAuth: []
       - {}
@@ -2826,7 +2826,7 @@ paths:
           description: ''
   /api/v1/storefront/products/{slug}:
     get:
-      operationId: v1_storefront_products_retrieve
+      operationId: api_v1_storefront_products_retrieve
       description: |-
         Base class for any `/api/v1/storefront/...` endpoint. Relies on
         `TenantMiddleware` having resolved the request's Host header into
@@ -2848,7 +2848,7 @@ paths:
           type: string
         required: true
       tags:
-      - v1
+      - api
       security:
       - platformJwtAuth: []
       - {}
@@ -2859,9 +2859,59 @@ paths:
               schema:
                 $ref: '#/components/schemas/StorefrontProductDetail'
           description: ''
+  /api/v1/themes/public/presets:
+    get:
+      operationId: api_v1_themes_public_presets_list
+      description: |-
+        Phase B: the public theme marketplace's data source. Genuinely
+        unauthenticated (`AllowAny`) -- the whole point of the marketplace
+        is that a visitor browses it BEFORE registering. Read-only,
+        platform-global, RLS-readonly data (same `Theme`/`ThemeVersion`/
+        `ThemePreset` rows `ThemePresetListView` already serves to
+        authenticated onboarding) -- exposing it publicly adds no new
+        write surface and leaks nothing merchant-specific.
+      tags:
+      - api
+      security:
+      - platformJwtAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PublicThemePreset'
+          description: ''
+  /api/v1/themes/public/presets/{preset_id}:
+    get:
+      operationId: api_v1_themes_public_presets_retrieve
+      description: |-
+        One preset's full data for the public preview page -- same
+        access rules as the list view above.
+      parameters:
+      - in: path
+        name: preset_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - api
+      security:
+      - platformJwtAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PublicThemePreset'
+          description: ''
   /api/v1/webhooks/payments/{provider}/{store_id}:
     post:
-      operationId: v1_webhooks_payments_create
+      operationId: api_v1_webhooks_payments_create
       description: |-
         Base class for `/api/v1/webhooks/payments/<provider>/<uuid:store_id>`
         (Phase 9) -- the third tenant-resolution strategy, added to
@@ -2888,7 +2938,7 @@ paths:
           format: uuid
         required: true
       tags:
-      - v1
+      - api
       security:
       - platformJwtAuth: []
       - {}
@@ -4017,6 +4067,47 @@ components:
         * `mock` - mock
         * `manual_cod` - manual_cod
         * `stripe` - stripe
+    PublicThemePreset:
+      type: object
+      description: |-
+        The public marketplace's card shape -- adds `theme_name`/
+        `theme_category` (never needed by the authenticated onboarding
+        picker, which already knows which theme it's showing) on top of
+        `ThemePresetSerializer`'s fields. A deliberately separate
+        serializer, not a superset flag on the same one: the two endpoints
+        have different audiences (anonymous visitor vs. an authenticated
+        merchant mid-onboarding) and should be free to diverge.
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        name:
+          type: string
+          readOnly: true
+        default_settings:
+          readOnly: true
+        preview_image_url:
+          type: string
+          format: uri
+          readOnly: true
+        theme_code:
+          type: string
+          readOnly: true
+        theme_name:
+          type: string
+          readOnly: true
+        theme_category:
+          type: string
+          readOnly: true
+      required:
+      - default_settings
+      - id
+      - name
+      - preview_image_url
+      - theme_category
+      - theme_code
+      - theme_name
     ShippingAddressRequest:
       type: object
       description: |-

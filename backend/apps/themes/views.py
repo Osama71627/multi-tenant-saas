@@ -19,6 +19,7 @@ enforcement, without needing any new architectural decision.
 
 from __future__ import annotations
 
+from django.shortcuts import get_object_or_404
 from drf_spectacular.utils import extend_schema
 from rest_framework import permissions
 from rest_framework.request import Request
@@ -28,6 +29,7 @@ from rest_framework.views import APIView
 from apps.stores.mixins import StorefrontAPIView, StoreScopedAPIView
 from apps.themes.models import StoreThemeConfig, ThemePreset
 from apps.themes.serializers import (
+    PublicThemePresetSerializer,
     StorefrontContextSerializer,
     StoreThemeConfigSerializer,
     ThemePresetSerializer,
@@ -41,6 +43,51 @@ class ThemePresetListView(APIView):
     def get(self, request: Request) -> Response:
         presets = ThemePreset.objects.filter(is_active=True).select_related("theme_version__theme")
         return Response(ThemePresetSerializer(presets, many=True).data)
+
+
+class PublicThemePresetListView(APIView):
+    """Phase B: the public theme marketplace's data source. Genuinely
+    unauthenticated (`AllowAny`) -- the whole point of the marketplace
+    is that a visitor browses it BEFORE registering. Read-only,
+    platform-global, RLS-readonly data (same `Theme`/`ThemeVersion`/
+    `ThemePreset` rows `ThemePresetListView` already serves to
+    authenticated onboarding) -- exposing it publicly adds no new
+    write surface and leaks nothing merchant-specific."""
+
+    permission_classes = [permissions.AllowAny]
+
+    @extend_schema(responses=PublicThemePresetSerializer(many=True))
+    def get(self, request: Request) -> Response:
+        presets = (
+            ThemePreset.objects.filter(is_active=True, theme_version__theme__is_active=True)
+            .select_related("theme_version__theme")
+            .order_by("theme_version__theme__code")
+        )
+        return Response(PublicThemePresetSerializer(presets, many=True).data)
+
+
+class PublicThemePresetDetailView(APIView):
+    """One preset's full data for the public preview page -- same
+    access rules as the list view above."""
+
+    permission_classes = [permissions.AllowAny]
+
+    @extend_schema(responses=PublicThemePresetSerializer)
+    def get(self, request: Request, preset_id) -> Response:
+        # `preset_id` is anonymous-client-supplied input, unlike
+        # StorefrontContextView's `.get(store=self.store)` above (which
+        # is structurally guaranteed to exist by provisioning
+        # invariants) -- a real 404 case, so `get_object_or_404` (raises
+        # `Http404`, converted to a clean 404 by
+        # `apps.core.exceptions.rfc9457_exception_handler`) rather than
+        # an unguarded `.get()`.
+        preset = get_object_or_404(
+            ThemePreset.objects.select_related("theme_version__theme"),
+            id=preset_id,
+            is_active=True,
+            theme_version__theme__is_active=True,
+        )
+        return Response(PublicThemePresetSerializer(preset).data)
 
 
 class StoreThemeConfigView(StoreScopedAPIView):

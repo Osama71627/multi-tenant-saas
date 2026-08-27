@@ -25,6 +25,33 @@ class ThemePresetSerializer(serializers.ModelSerializer):
         read_only_fields = fields
 
 
+class PublicThemePresetSerializer(serializers.ModelSerializer):
+    """The public marketplace's card shape -- adds `theme_name`/
+    `theme_category` (never needed by the authenticated onboarding
+    picker, which already knows which theme it's showing) on top of
+    `ThemePresetSerializer`'s fields. A deliberately separate
+    serializer, not a superset flag on the same one: the two endpoints
+    have different audiences (anonymous visitor vs. an authenticated
+    merchant mid-onboarding) and should be free to diverge."""
+
+    theme_code = serializers.CharField(source="theme_version.theme.code", read_only=True)
+    theme_name = serializers.CharField(source="theme_version.theme.name", read_only=True)
+    theme_category = serializers.CharField(source="theme_version.theme.category", read_only=True)
+
+    class Meta:
+        model = ThemePreset
+        fields = [
+            "id",
+            "name",
+            "default_settings",
+            "preview_image_url",
+            "theme_code",
+            "theme_name",
+            "theme_category",
+        ]
+        read_only_fields = fields
+
+
 class StoreThemeConfigSerializer(serializers.ModelSerializer):
     theme_code = serializers.CharField(source="theme_version.theme.code", read_only=True)
     theme_version_number = serializers.IntegerField(

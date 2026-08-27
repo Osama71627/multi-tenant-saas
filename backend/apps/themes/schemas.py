@@ -42,6 +42,20 @@ class AuroraV1SettingsSerializer(serializers.Serializer):
 
 _SETTINGS_SERIALIZERS: dict[tuple[str, int], type[serializers.Serializer]] = {
     ("aurora", 1): AuroraV1SettingsSerializer,
+    # Phase B: Fashion/Electronics/Luxury are genuinely different
+    # frontend component packages (@saas/theme-fashion/-electronics/
+    # -luxury), but the SETTINGS CONTRACT a merchant configures --
+    # palette, font choice, hero copy, homepage section order, nav
+    # order -- is deliberately the same shape as Aurora's. What a theme
+    # changes is the RENDERING of those settings, not what's
+    # configurable; reusing this one serializer class for all four
+    # keys validates each identically without three pointless
+    # duplicate classes. A theme that later needs its own distinct
+    # configurable fields gets its own serializer then, same as this
+    # dict already supports per (code, version) key.
+    ("fashion", 1): AuroraV1SettingsSerializer,
+    ("electronics", 1): AuroraV1SettingsSerializer,
+    ("luxury", 1): AuroraV1SettingsSerializer,
 }
 
 

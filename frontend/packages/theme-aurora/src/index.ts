@@ -5,5 +5,6 @@ export { AuroraHeader } from "./header";
 export { AuroraHero } from "./hero";
 export { AuroraNewsletter } from "./newsletter";
 export { AuroraProductCard } from "./product-card";
+export { AuroraProductGrid } from "./product-grid";
 export { auroraCssVars } from "./theme-vars";
 export type { AuroraCategory, AuroraProductListItem, AuroraSettings } from "./types";

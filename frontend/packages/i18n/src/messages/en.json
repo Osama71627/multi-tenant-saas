@@ -44,8 +44,13 @@
     }
   },
   "themesMarketplace": {
-    "title": "Theme marketplace",
-    "comingSoonBody": "We're building a full marketplace where you'll be able to browse, preview, and choose from multiple professional store designs. Today, every new store starts from our Aurora theme, with more on the way.",
+    "title": "Choose your store design",
+    "subtitle": "Browse real, ready-made storefront designs. Preview any of them before you commit to one.",
+    "empty": "No themes are available right now.",
+    "preview": "Preview",
+    "useTheme": "Use this theme",
+    "demoNotice": "Demo preview — {theme}. This is not a real store.",
+    "backToMarketplace": "Back to marketplace",
     "cta": "Create Your Store",
     "backToHome": "Back to home"
   },
