@@ -37,8 +37,17 @@ export function RegisterForm({ locale }: { locale: string }) {
       body: JSON.stringify(values),
     });
     if (!registerResponse.ok) {
+      // apps.core.exceptions.rfc9457_exception_handler puts the actually
+      // useful reason in `errors` (per-field messages) and only a generic
+      // "Validation failed." in `detail` -- reading `detail` alone (as
+      // this used to) told a user their password was rejected without
+      // ever saying why (too short/common/numeric, per Django's
+      // validators). Prefer the field-specific message when present.
       const data = await registerResponse.json().catch(() => null);
-      setServerError(data?.detail ?? data?.email?.[0] ?? "Registration failed.");
+      const fieldMessage = Array.isArray(data?.errors)
+        ? data.errors.flatMap((e: { messages?: string[] }) => e.messages ?? []).join(" ")
+        : null;
+      setServerError(fieldMessage || data?.detail || "Registration failed.");
       return;
     }
 
