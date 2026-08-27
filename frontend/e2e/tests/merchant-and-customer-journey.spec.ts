@@ -13,10 +13,23 @@ import { expect, test } from "@playwright/test";
  * clicked through the dashboard's settings pages -- the same "seed data,
  * then test the real flow through the UI" split any E2E suite makes
  * between fixture setup and the behavior actually being verified. Every
- * step a REAL merchant or customer would perform (registering, creating
- * a store, adding a product, browsing, checking out, paying, viewing the
- * order) goes through the real UI against the real backend -- no mocked
- * HTTP layer anywhere in this file.
+ * step a REAL merchant or customer would perform (registering, adding a
+ * product, browsing, checking out, paying, viewing the order) goes
+ * through the real UI against the real backend -- no mocked HTTP layer
+ * anywhere in this file.
+ *
+ * The merchant account + Store are ALSO now seeded rather than clicked
+ * through the UI (post-Phase-D gap fix): the dashboard's onboarding
+ * wizard, which used to let this test create a Store with no plan and
+ * no payment, has been retired for exactly that reason -- see
+ * apps/dashboard's "/[locale]/app" page.tsx docstring. There is
+ * currently no UI path from "just registered" to "has a Store" at all
+ * (Phase E/F/G -- payment, business info, real store creation -- don't
+ * exist yet), so this seed step stands in for that future flow the same
+ * way seedCheckoutPrerequisites already stands in for the merchant
+ * manually configuring shipping/payments. The merchant still logs in
+ * through the real UI afterwards, and every step from "add a product"
+ * onward is unchanged and still exercises the real UI end to end.
  */
 
 const DASHBOARD_URL = process.env.E2E_DASHBOARD_URL ?? "http://localhost:4001";
@@ -32,6 +45,30 @@ const BACKEND_PYTHON =
   process.env.E2E_BACKEND_PYTHON ??
   path.resolve(__dirname, "../../../backend/.venv/Scripts/python.exe");
 const BACKEND_DIR = path.resolve(__dirname, "../../../backend");
+
+// Stands in for the not-yet-built payment -> business-info -> store-
+// creation pipeline (Phase E/F/G). See the file-level docstring.
+function seedMerchantAndStore(
+  email: string,
+  password: string,
+  storeName: string,
+  storeSlug: string
+): void {
+  const script = `
+from apps.accounts.models import PlatformUser
+from apps.stores.services import create_store
+
+user = PlatformUser.objects.create_user(email="${email}", password="${password}")
+create_store(owner=user, name="${storeName}", slug="${storeSlug}")
+print("SEED_OK")
+`.trim();
+
+  execFileSync(
+    BACKEND_PYTHON,
+    ["manage.py", "shell", "-c", script],
+    { cwd: BACKEND_DIR, encoding: "utf-8", stdio: "pipe" }
+  );
+}
 
 function seedCheckoutPrerequisites(storeSlug: string, productSlug: string): void {
   const script = `
@@ -103,23 +140,15 @@ test("register -> create store -> add product -> purchase -> payment -> tracking
   const productName = "E2E Journey Product";
   const productSlug = "e2e-journey-product";
 
-  // 1. Register a new merchant account.
-  await page.goto(`${DASHBOARD_URL}/en/register`);
-  await page.getByLabel("Full name").fill("E2E Journey Merchant");
+  // 1/2. Merchant account + Store: seeded, not clicked through the UI --
+  // see the file-level docstring for why.
+  seedMerchantAndStore(email, password, storeName, storeSlug);
+
+  // Log in through the real UI as that merchant.
+  await page.goto(`${DASHBOARD_URL}/en/login`);
   await page.getByLabel("Email").fill(email);
   await page.getByLabel("Password").fill(password);
-  await page.getByRole("button", { name: "Create account" }).click();
-
-  // 2. Onboarding wizard creates the store.
-  await expect(page.getByRole("heading", { name: "Choose a starting look" })).toBeVisible();
-  await page.locator('[role="button"]').first().click();
-  await page.getByRole("button", { name: "Continue" }).click();
-
-  await expect(page.getByRole("heading", { name: "Tell us about your store" })).toBeVisible();
-  await page.getByLabel("Store name").fill(storeName);
-  await page.getByLabel("Store address").fill(storeSlug);
-  await page.getByRole("button", { name: "Create my store" }).click();
-
+  await page.getByRole("button", { name: "Log in" }).click();
   await expect(page).toHaveURL(/\/stores\/[0-9a-f-]+$/);
 
   // 3. Add a product.

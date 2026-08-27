@@ -53,7 +53,11 @@ export function StoreSwitcher({ locale, currentStoreId }: { locale: string; curr
         )}
         <DropdownMenuSeparator />
         <DropdownMenuItem asChild>
-          <Link href={`/${locale}/onboarding`} className="flex items-center gap-2">
+          {/* "/onboarding" used to create a free Store with no plan/payment
+              -- points at "/plans" now (see app/page.tsx's docstring) so
+              an existing merchant adding another store goes through the
+              same payment-gated flow as a first-time one. */}
+          <Link href={`/${locale}/plans`} className="flex items-center gap-2">
             <Plus className="h-4 w-4" />
             {t("createStore")}
           </Link>
