@@ -18,7 +18,7 @@ const intlMiddleware = createMiddleware({
   localePrefix: "always",
 });
 
-const PUBLIC_PATH_SEGMENTS = new Set(["login", "register"]);
+const PUBLIC_PATH_SEGMENTS = new Set(["login", "register", "themes"]);
 
 /**
  * Two jobs: (1) next-intl's own locale-prefix routing/negotiation, (2) a
@@ -36,7 +36,11 @@ export default function middleware(request: NextRequest) {
 
   const segments = request.nextUrl.pathname.split("/").filter(Boolean);
   const pathAfterLocale = segments[1]; // segments[0] is the locale
-  const isPublicPath = pathAfterLocale ? PUBLIC_PATH_SEGMENTS.has(pathAfterLocale) : false;
+  // The bare locale root (no further segment, e.g. "/en") is the public
+  // landing page (app/[locale]/(public)/page.tsx) -- Phase A's "product
+  // vision reset" moved the authenticated dashboard entry point to
+  // "/[locale]/app" specifically so the root could become public.
+  const isPublicPath = !pathAfterLocale || PUBLIC_PATH_SEGMENTS.has(pathAfterLocale);
   const hasAccessTokenCookie = request.cookies.has(ACCESS_TOKEN_COOKIE);
 
   if (!isPublicPath && !hasAccessTokenCookie) {

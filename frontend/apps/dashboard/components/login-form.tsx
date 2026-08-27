@@ -39,7 +39,7 @@ export function LoginForm({ locale }: { locale: string }) {
       setServerError(t("loginError"));
       return;
     }
-    const next = searchParams.get("next") ?? `/${locale}`;
+    const next = searchParams.get("next") ?? `/${locale}/app`;
     router.push(next);
     router.refresh();
   }

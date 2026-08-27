@@ -1,4 +1,54 @@
 {
+  "landing": {
+    "brand": "Multi-Tenant SaaS",
+    "logIn": "Log in",
+    "hero": {
+      "headline": "Launch your online store on a platform built for it",
+      "subheadline": "Pick a professional theme, connect your payments and shipping, and start selling — each store fully isolated on its own secure tenant.",
+      "primaryCta": "Create Your Store",
+      "secondaryCta": "Explore Themes"
+    },
+    "features": {
+      "title": "Everything a store needs, none of the infrastructure",
+      "security": {
+        "title": "Secure by design",
+        "description": "Every store runs on its own isolated tenant, enforced at the database level — your data never mixes with anyone else's."
+      },
+      "commerce": {
+        "title": "Real inventory & orders",
+        "description": "Track stock across locations and manage the full order lifecycle from a single dashboard."
+      },
+      "payments": {
+        "title": "Built-in payments & shipping",
+        "description": "Configure how your customers pay and how orders ship, with a provider system designed to grow with you."
+      },
+      "bilingual": {
+        "title": "Bilingual from day one",
+        "description": "Every storefront ships in Arabic and English, right-to-left included."
+      }
+    },
+    "howItWorks": {
+      "title": "How it works",
+      "step1": { "title": "Choose your theme", "description": "Browse ready-made storefront designs and preview them before you commit." },
+      "step2": { "title": "Subscribe to a plan", "description": "Pick the plan that fits your business — upgrade anytime as you grow." },
+      "step3": { "title": "Add your products", "description": "Bring in your catalog, set your prices, and configure shipping and payments." },
+      "step4": { "title": "Go live", "description": "Your store gets its own address instantly — no servers, no setup, no code." }
+    },
+    "pricing": {
+      "title": "Simple, transparent pricing",
+      "subtitle": "Plans for every stage of your business — launching soon.",
+      "comingSoon": "Coming soon"
+    },
+    "footer": {
+      "copyright": "© {year} Multi-Tenant SaaS"
+    }
+  },
+  "themesMarketplace": {
+    "title": "Theme marketplace",
+    "comingSoonBody": "We're building a full marketplace where you'll be able to browse, preview, and choose from multiple professional store designs. Today, every new store starts from our Aurora theme, with more on the way.",
+    "cta": "Create Your Store",
+    "backToHome": "Back to home"
+  },
   "nav": {
     "overview": "Overview",
     "products": "Products",

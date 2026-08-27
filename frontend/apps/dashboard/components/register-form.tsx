@@ -50,7 +50,7 @@ export function RegisterForm({ locale }: { locale: string }) {
       router.push(`/${locale}/login`);
       return;
     }
-    router.push(`/${locale}`);
+    router.push(`/${locale}/app`);
     router.refresh();
   }
 

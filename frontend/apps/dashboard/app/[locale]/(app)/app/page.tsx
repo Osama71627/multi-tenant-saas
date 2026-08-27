@@ -15,6 +15,14 @@ interface StoreListItem {
  * journey (Discover -> Preview -> Choose -> Configure -> Provision ->
  * Launch -> Manage): a brand-new merchant never sees a blank dashboard,
  * they land straight in onboarding.
+ *
+ * Lives at "/[locale]/app" rather than the bare "/[locale]" root as of
+ * the Phase A "product vision reset": the root is now the public
+ * landing page (../../(public)/page.tsx), so the authenticated
+ * dashboard entry point needed its own path. Every post-login/register
+ * redirect target was updated alongside this move (login-form.tsx,
+ * register-form.tsx) -- see middleware.ts's PUBLIC_PATH_SEGMENTS
+ * comment for the other half of this change.
  */
 export default async function AppIndexPage({
   params,
