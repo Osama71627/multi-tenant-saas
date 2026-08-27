@@ -65,6 +65,10 @@ def create_store(
     name: str,
     slug: str,
     theme_preset_id: uuid.UUID | str | None = None,
+    contact_email: str = "",
+    contact_phone: str = "",
+    business_category: str = "",
+    logo=None,
 ) -> Store:
     """
     Creates a `Store`, its primary subdomain `StoreDomain`, and an
@@ -91,6 +95,14 @@ def create_store(
     original product brief. Documented scope decision, not an oversight;
     revisit if abuse patterns show up.
 
+    `contact_email`/`contact_phone`/`business_category`/`logo` (Phase F,
+    "product vision reset" business-info step): all optional, all
+    written straight onto the new `Store` row at creation time -- see
+    `Store`'s own field comments for why they live there. Omitting them
+    (the default) leaves the pre-Phase-F blank-safe defaults untouched,
+    same as every caller before this phase (e.g. the E2E test's seeded
+    stores).
+
     Two DB contexts on purpose within the one transaction: `Store` itself
     has no tenant context (it IS the tenant -- see apps/stores/models.py),
     but `StoreDomain`/`StoreMembership` are `TenantOwnedModel`s whose RLS
@@ -114,7 +126,15 @@ def create_store(
         with tenant_context(None):
             apply_tenant_context_to_db(None)
             try:
-                store = Store.objects.create(name=name, slug=slug, status=Store.Status.ACTIVE)
+                store = Store.objects.create(
+                    name=name,
+                    slug=slug,
+                    status=Store.Status.ACTIVE,
+                    contact_email=contact_email,
+                    contact_phone=contact_phone,
+                    business_category=business_category,
+                    logo=logo,
+                )
             finally:
                 clear_tenant_context_from_db()
 

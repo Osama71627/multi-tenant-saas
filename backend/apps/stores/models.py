@@ -53,14 +53,36 @@ class Store(BaseModel, TimeStampedModel):
     # describes -- that's still deferred to its own later phase.
     default_currency = models.CharField(max_length=3, default="SAR")
     # Phase 12 store-settings chunk: plain contact fields with an obvious
-    # owner (Store itself) and no relation to any other domain --
-    # deliberately NOT a "Branding" model (no logo/theme-ish fields here,
-    # those stay in apps.themes.StoreThemeConfig per the Theme/Template
-    # architecture decision) and NOT wired into any other system yet
-    # (no email sending, no invoices) -- purely merchant-facing profile
-    # data, blank-safe additive columns like default_currency above.
+    # owner (Store itself) and no relation to any other domain -- NOT
+    # wired into any other system yet (no email sending, no invoices) --
+    # purely merchant-facing profile data, blank-safe additive columns
+    # like default_currency above.
     contact_email = models.EmailField(blank=True, default="")
     contact_phone = models.CharField(max_length=32, blank=True, default="")
+    # Business-info step (post-Phase-D "product vision reset", the
+    # moment apps.themes.models's own docstring anticipated: "those
+    # fields have (or will have, when the onboarding wizard needs them)
+    # their authoritative home on apps.stores.models.Store, never
+    # duplicated" [in apps.themes.StoreThemeConfig, which stays
+    # presentation-only]). `logo` is a real uploaded file (Django
+    # ImageField, local MEDIA_ROOT storage -- see config/settings/base.py)
+    # -- distinct from ThemePreset.preview_image_url, which is a
+    # platform-seeded reference URL, not merchant-uploaded content.
+    # `business_category` is free text on purpose: no fixed taxonomy has
+    # been designed yet, and forcing one now would be a bigger decision
+    # than this additive column warrants.
+    logo = models.ImageField(upload_to="store_logos/", blank=True, null=True)
+    # `db_default` (not just `default`, unlike contact_email/contact_phone
+    # above) -- real bug found running the full suite after adding this
+    # column: several pre-existing tests build a `Store` row via raw SQL
+    # (concurrency/platform_admin fixtures, e.g.
+    # apps/orders/tests/test_concurrency.py's `_insert_store`) that lists
+    # an explicit column set predating this field, so a Python-only
+    # `default` (which the ORM applies, but a raw INSERT that never
+    # mentions the column does not) hit this NOT NULL column with nothing
+    # -- `NotNullViolation`. A real database-level DEFAULT closes that
+    # gap for every future raw INSERT too, not just today's fixtures.
+    business_category = models.CharField(max_length=100, blank=True, default="", db_default="")
 
     class Meta:
         db_table = "stores_store"

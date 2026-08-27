@@ -35,13 +35,16 @@ needs no external provider at all.
 
 from __future__ import annotations
 
+import secrets
 from datetime import timedelta
 
-from django.db import transaction
+from django.db import IntegrityError, transaction
 from django.utils import timezone
+from django.utils.text import slugify
 
 from apps.accounts.models import PlatformUser
 from apps.stores.models import Store
+from apps.stores.services import StoreSlugReservedError, create_store
 from apps.subscriptions.models import (
     Invoice,
     Plan,
@@ -207,20 +210,41 @@ class NoActiveCheckoutSessionError(Exception):
     before ever starting a checkout session at all."""
 
 
-_ACTIVE_CHECKOUT_STATUSES = (
+# Pre-payment only -- selecting/changing a plan must never be possible
+# once a payment has actually succeeded (that would silently detach the
+# price the user paid for from the plan they end up with). `payment_failed`
+# is included on purpose: the approved Phase E failure screen offers
+# "return to plan" (a merchant can pick a DIFFERENT plan after a decline,
+# not just retry the same one) -- see billing.py's `_INITIATABLE_STATUSES`
+# for the separate, narrower set that governs retrying PAYMENT itself.
+# Used ONLY by `select_plan_for_checkout_session` below.
+_PRE_PAYMENT_STATUSES = (
     SubscriptionCheckoutSession.CheckoutStatus.DRAFT,
     SubscriptionCheckoutSession.CheckoutStatus.READY_FOR_PAYMENT,
+    SubscriptionCheckoutSession.CheckoutStatus.PAYMENT_FAILED,
+)
+
+# Everything short of a Store actually existing -- i.e. "this user has
+# an in-progress checkout journey, don't start a second one, and let
+# them see/update it". Phase E added `payment_pending`/`payment_failed`/
+# `awaiting_business_info` to this set; the DB-level
+# `uniq_active_checkout_session_per_user` constraint mirrors the same
+# values for the same reason.
+_OPEN_CHECKOUT_STATUSES = (
+    *_PRE_PAYMENT_STATUSES,
+    SubscriptionCheckoutSession.CheckoutStatus.PAYMENT_PENDING,
+    SubscriptionCheckoutSession.CheckoutStatus.AWAITING_BUSINESS_INFO,
 )
 
 
 def get_active_checkout_session(*, user: PlatformUser) -> SubscriptionCheckoutSession | None:
-    """The one non-terminal (draft/ready_for_payment) session for this
-    user, if any -- looked up purely by `user`, never by a client-held
-    session id, so it survives a refresh or a fresh login exactly the
-    same way (Phase D requirement: the choice must not depend on any
-    client-side state surviving)."""
+    """The one open (not yet a Store) session for this user, if any --
+    looked up purely by `user`, never by a client-held session id, so
+    it survives a refresh or a fresh login exactly the same way (Phase D
+    requirement: the choice must not depend on any client-side state
+    surviving)."""
     return SubscriptionCheckoutSession.objects.filter(
-        user=user, checkout_status__in=_ACTIVE_CHECKOUT_STATUSES
+        user=user, checkout_status__in=_OPEN_CHECKOUT_STATUSES
     ).first()
 
 
@@ -228,16 +252,19 @@ def start_or_update_checkout_session(
     *, user: PlatformUser, theme_preset_id=None
 ) -> SubscriptionCheckoutSession:
     """Upsert, not create-only: a user re-visiting the marketplace and
-    picking a DIFFERENT theme updates their existing active session
+    picking a DIFFERENT theme updates their existing open session
     rather than accumulating a second one (enforced at the DB level too
-    -- `uniq_active_checkout_session_per_user`). Picking a plan later
-    does not require having passed a theme here; `theme_preset_id` is
-    optional so a session can exist (e.g. mid plan-selection) with no
-    theme attached yet if a caller ever reaches this without one."""
+    -- `uniq_active_checkout_session_per_user`) -- including one that
+    already paid but hasn't submitted business info yet: changing the
+    theme post-payment is harmless (price depends on the plan, not the
+    theme). Picking a plan later does not require having passed a theme
+    here; `theme_preset_id` is optional so a session can exist (e.g. mid
+    plan-selection) with no theme attached yet if a caller ever reaches
+    this without one."""
     with transaction.atomic():
         session = (
             SubscriptionCheckoutSession.objects.select_for_update()
-            .filter(user=user, checkout_status__in=_ACTIVE_CHECKOUT_STATUSES)
+            .filter(user=user, checkout_status__in=_OPEN_CHECKOUT_STATUSES)
             .first()
         )
         if session is None:
@@ -270,7 +297,7 @@ def select_plan_for_checkout_session(
     with transaction.atomic():
         session = (
             SubscriptionCheckoutSession.objects.select_for_update()
-            .filter(user=user, checkout_status__in=_ACTIVE_CHECKOUT_STATUSES)
+            .filter(user=user, checkout_status__in=_PRE_PAYMENT_STATUSES)
             .first()
         )
         if session is None:
@@ -282,3 +309,101 @@ def select_plan_for_checkout_session(
         session.checkout_status = SubscriptionCheckoutSession.CheckoutStatus.READY_FOR_PAYMENT
         session.save(update_fields=["plan_version", "checkout_status", "updated_at"])
         return session
+
+
+# --------------------------------------------------------------------------
+# Phase E (payment, demo/sandbox only) + F (business info) -- "product
+# vision reset" continued. See settings.SUBSCRIPTION_BILLING_MODE's
+# two-gate comment (config/settings/base.py) for why a demo payment can
+# ever run at all, and Store's field comments (apps/stores/models.py)
+# for why business info lands directly on the Store row it produces.
+# --------------------------------------------------------------------------
+
+
+class CheckoutNotAwaitingBusinessInfoError(Exception):
+    """Raised by `complete_checkout_with_business_info` when the user
+    has no session in `awaiting_business_info` -- payment hasn't
+    succeeded yet, or this session was already consumed into a Store."""
+
+
+def _create_store_with_unique_slug(*, owner: PlatformUser, store_name: str, **kwargs) -> Store:
+    """`create_store` itself is the authoritative uniqueness guard (a DB
+    unique constraint, not a pre-check -- see its own docstring); this
+    just retries with a random suffix on collision rather than
+    surfacing "that name is taken" to a merchant who never typed a slug
+    at all in this flow (business info collects a company NAME, not an
+    address/slug -- unlike the retired onboarding wizard)."""
+    base_slug = slugify(store_name)[:55] or "store"
+    slug = base_slug
+    last_error: Exception | None = None
+    for _ in range(5):
+        try:
+            return create_store(owner=owner, name=store_name, slug=slug, **kwargs)
+        except (IntegrityError, StoreSlugReservedError) as exc:
+            last_error = exc
+            slug = f"{base_slug}-{secrets.token_hex(3)}"
+    raise last_error  # pragma: no cover -- practically unreachable (2^24 suffixes)
+
+
+def complete_checkout_with_business_info(
+    *,
+    user: PlatformUser,
+    store_name: str,
+    business_category: str,
+    contact_phone: str,
+    logo=None,
+) -> Store:
+    """The ONLY place this checkout journey actually produces a real
+    Store: requires a session already in `awaiting_business_info` (a
+    successful demo payment happened), forwards its `theme_preset_id`
+    to `create_store`, and marks the session `completed` + `consumed_at`
+    so it can never be reused to create a second store. `contact_email`
+    is never taken from the request -- always the authenticated user's
+    own verified account email, same "never trust client-supplied
+    identity" posture as price being server-derived in
+    `select_plan_for_checkout_session`."""
+    with transaction.atomic():
+        session = (
+            SubscriptionCheckoutSession.objects.select_for_update()
+            .filter(
+                user=user,
+                checkout_status=(SubscriptionCheckoutSession.CheckoutStatus.AWAITING_BUSINESS_INFO),
+            )
+            .first()
+        )
+        if session is None:
+            raise CheckoutNotAwaitingBusinessInfoError(
+                "No checkout session awaiting business info -- complete payment first."
+            )
+
+        store = _create_store_with_unique_slug(
+            owner=user,
+            store_name=store_name,
+            theme_preset_id=session.theme_preset_id,
+            contact_email=user.email,
+            contact_phone=contact_phone,
+            business_category=business_category,
+            logo=logo,
+        )
+
+        session.checkout_status = SubscriptionCheckoutSession.CheckoutStatus.COMPLETED
+        session.provisioning_status = SubscriptionCheckoutSession.ProvisioningStatus.PROVISIONED
+        session.store_name_draft = store_name
+        session.store_slug_draft = store.slug
+        session.business_info_draft = {
+            "business_category": business_category,
+            "contact_phone": contact_phone,
+        }
+        session.consumed_at = timezone.now()
+        session.save(
+            update_fields=[
+                "checkout_status",
+                "provisioning_status",
+                "store_name_draft",
+                "store_slug_draft",
+                "business_info_draft",
+                "consumed_at",
+                "updated_at",
+            ]
+        )
+        return store

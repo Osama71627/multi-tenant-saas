@@ -2859,6 +2859,28 @@ paths:
               schema:
                 $ref: '#/components/schemas/StorefrontProductDetail'
           description: ''
+  /api/v1/subscriptions/billing/webhook:
+    post:
+      operationId: api_v1_subscriptions_billing_webhook_create
+      description: |-
+        Phase E's real webhook endpoint -- the same idempotent,
+        state-guarded `billing.apply_payment_event` this app's own demo-
+        provider-simulation Celery task calls, reachable over HTTP the way
+        a genuine provider callback would arrive. Deliberately `AllowAny`
+        (a real webhook is never an authenticated user session) but hard-
+        gated to `SUBSCRIPTION_BILLING_MODE == "demo"` -- there is no
+        "live" signature verification implemented yet (see
+        `apps.payments.services.process_webhook` for what that eventually
+        needs to look like), so this must never be reachable in production
+        regardless of URL discovery.
+      tags:
+      - api
+      security:
+      - platformJwtAuth: []
+      - {}
+      responses:
+        '200':
+          description: No response body
   /api/v1/subscriptions/checkout-sessions/current:
     get:
       operationId: api_v1_subscriptions_checkout_sessions_current_retrieve
@@ -2965,6 +2987,90 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/SubscriptionCheckoutSession'
+          description: ''
+  /api/v1/subscriptions/checkout-sessions/current/business-info:
+    post:
+      operationId: api_v1_subscriptions_checkout_sessions_current_business_info_create
+      description: |-
+        Phase F: the step that actually creates the Store. Requires a
+        session already in `awaiting_business_info` (see
+        `CheckoutSessionPayView`) -- `contact_email` is always
+        `request.user.email`, never accepted from the client.
+      tags:
+      - api
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/BusinessInfoRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/BusinessInfoRequest'
+        required: true
+      security:
+      - platformJwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreatedStore'
+          description: ''
+  /api/v1/subscriptions/checkout-sessions/current/pay:
+    post:
+      operationId: api_v1_subscriptions_checkout_sessions_current_pay_create
+      description: |-
+        Phase E: starts (or retries) a real, sandbox-provider-backed
+        payment attempt -- gated by `settings.SUBSCRIPTION_BILLING_MODE`
+        (see that setting's comment in config/settings/base.py). Creates a
+        `SubscriptionPaymentIntent` and moves the session to
+        `payment_pending`; the intent resolves asynchronously (a Celery task
+        simulating the provider's own pending -> processing -> succeeded/
+        failed callback, processed through the exact same idempotent
+        webhook-handling code a real provider's callback would use -- see
+        `apps.subscriptions.billing`). Never creates a Store.
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InitiatePaymentRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/InitiatePaymentRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/InitiatePaymentRequest'
+        required: true
+      security:
+      - platformJwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SubscriptionPaymentIntent'
+          description: ''
+  /api/v1/subscriptions/checkout-sessions/current/payment-intent:
+    get:
+      operationId: api_v1_subscriptions_checkout_sessions_current_payment_intent_retrieve
+      description: |-
+        Phase E: the authenticated user's most recent payment intent --
+        polled by the checkout page while `state` is pending/processing,
+        read once more for `failure_reason` on the failure screen. Scoped
+        by `request.user` only, same "server-side, never a client-held id"
+        posture as `CheckoutSessionCurrentView`.
+      tags:
+      - api
+      security:
+      - platformJwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SubscriptionPaymentIntent'
           description: ''
   /api/v1/subscriptions/plans/public:
     get:
@@ -3181,6 +3287,36 @@ components:
       description: |-
         * `monthly` - Monthly
         * `yearly` - Yearly
+    BusinessInfoRequest:
+      type: object
+      description: |-
+        Phase F. Multipart (the request carries a real file for `logo`).
+        `contact_email` is deliberately NOT a field here -- it is always the
+        authenticated user's own account email, taken server-side in the
+        view, never accepted from the client (see
+        apps.subscriptions.services.complete_checkout_with_business_info's
+        docstring).
+      properties:
+        store_name:
+          type: string
+          minLength: 1
+          maxLength: 255
+        business_category:
+          type: string
+          minLength: 1
+          maxLength: 100
+        contact_phone:
+          type: string
+          minLength: 1
+          maxLength: 32
+        logo:
+          type: string
+          format: binary
+          nullable: true
+      required:
+      - business_category
+      - contact_phone
+      - store_name
     Cart:
       type: object
       properties:
@@ -3321,6 +3457,9 @@ components:
       enum:
       - draft
       - ready_for_payment
+      - payment_pending
+      - payment_failed
+      - awaiting_business_info
       - completed
       - abandoned
       - expired
@@ -3328,6 +3467,9 @@ components:
       description: |-
         * `draft` - Draft
         * `ready_for_payment` - Ready for payment
+        * `payment_pending` - Payment pending
+        * `payment_failed` - Payment failed
+        * `awaiting_business_info` - Awaiting business info
         * `completed` - Completed
         * `abandoned` - Abandoned
         * `expired` - Expired
@@ -3388,11 +3530,48 @@ components:
       required:
       - name
       - slug
+    CreatedStore:
+      type: object
+      description: |-
+        Minimal response for the business-info step -- just enough for
+        the frontend to redirect straight to the new Store's dashboard.
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        name:
+          type: string
+          readOnly: true
+        slug:
+          type: string
+          readOnly: true
+          pattern: ^[-a-zA-Z0-9_]+$
+      required:
+      - id
+      - name
+      - slug
     FulfillmentStatusEnum:
       enum:
       - unfulfilled
       type: string
       description: '* `unfulfilled` - Unfulfilled'
+    InitiatePaymentRequest:
+      type: object
+      description: |-
+        Phase E. `card_number` is NEVER persisted (see
+        `SubscriptionPaymentIntent` -- no card-data field exists on it at
+        all) -- used only by `apps.subscriptions.billing.simulate_demo_outcome`
+        to pick which demo outcome fires. Not validated as a real card
+        number (Luhn, length, etc.) on purpose -- this is a sandbox
+        convention (Stripe-test-number-style), not a real payment field.
+      properties:
+        card_number:
+          type: string
+          minLength: 4
+          maxLength: 32
+      required:
+      - card_number
     KindEnum:
       enum:
       - flat
@@ -4588,6 +4767,20 @@ components:
           type: string
           format: uuid
           nullable: true
+    StateEnum:
+      enum:
+      - pending
+      - processing
+      - succeeded
+      - failed
+      - cancelled
+      type: string
+      description: |-
+        * `pending` - Pending
+        * `processing` - Processing
+        * `succeeded` - Succeeded
+        * `failed` - Failed
+        * `cancelled` - Cancelled
     Status206Enum:
       enum:
       - pending_payment
@@ -5180,6 +5373,41 @@ components:
       - provisioning_status
       - theme_preset_id
       - updated_at
+    SubscriptionPaymentIntent:
+      type: object
+      description: |-
+        Phase E. Polled by the checkout page while `state` is
+        pending/processing, and read once more for `failure_reason` on the
+        failure screen.
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        amount:
+          type: integer
+          readOnly: true
+        currency:
+          type: string
+          readOnly: true
+        state:
+          allOf:
+          - $ref: '#/components/schemas/StateEnum'
+          readOnly: true
+        failure_reason:
+          type: string
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - amount
+      - created_at
+      - currency
+      - failure_reason
+      - id
+      - state
     SubscriptionStatus:
       type: object
       description: |-

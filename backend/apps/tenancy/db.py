@@ -41,4 +41,22 @@ def apply_tenant_context_to_db(store_id: uuid.UUID | str | None, using: str = "d
 
 
 def clear_tenant_context_from_db(using: str = "default") -> None:
+    # Real bug found wiring apps.subscriptions.services'
+    # _create_store_with_unique_slug (Phase F): callers commonly invoke
+    # this from a `finally:` block that wraps the very query that might
+    # have just failed (e.g. `Store.objects.create(...)` raising
+    # `IntegrityError` on a slug collision). At that point Postgres has
+    # already aborted the transaction -- ANY further query, including
+    # this cleanup one, raises "current transaction is aborted" (surfaced
+    # by Django as `TransactionManagementError`), which then MASKS the
+    # original, actually-meaningful exception before it ever reaches the
+    # caller. The cleanup is redundant on that path anyway:
+    # `apply_tenant_context_to_db` above always sets this GUC with
+    # `is_local=true` (transaction-scoped), so it evaporates on its own
+    # the instant the enclosing `transaction.atomic()` rolls back to its
+    # savepoint -- there is nothing left to clear. Skip the no-op query
+    # when the connection already knows it needs a rollback.
+    connection = connections[using]
+    if connection.needs_rollback:
+        return
     apply_tenant_context_to_db(None, using=using)

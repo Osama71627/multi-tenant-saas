@@ -2,12 +2,14 @@ from __future__ import annotations
 
 from rest_framework import serializers
 
+from apps.stores.models import Store
 from apps.subscriptions.models import (
     PlanVersion,
     PlanVersionFeature,
     PlanVersionQuota,
     Subscription,
     SubscriptionCheckoutSession,
+    SubscriptionPaymentIntent,
 )
 
 
@@ -118,3 +120,49 @@ class StartSubscriptionCheckoutSessionSerializer(serializers.Serializer):
 
 class SelectPlanSerializer(serializers.Serializer):
     plan_version_id = serializers.UUIDField()
+
+
+class InitiatePaymentSerializer(serializers.Serializer):
+    """Phase E. `card_number` is NEVER persisted (see
+    `SubscriptionPaymentIntent` -- no card-data field exists on it at
+    all) -- used only by `apps.subscriptions.billing.simulate_demo_outcome`
+    to pick which demo outcome fires. Not validated as a real card
+    number (Luhn, length, etc.) on purpose -- this is a sandbox
+    convention (Stripe-test-number-style), not a real payment field."""
+
+    card_number = serializers.CharField(max_length=32, min_length=4)
+
+
+class SubscriptionPaymentIntentSerializer(serializers.ModelSerializer):
+    """Phase E. Polled by the checkout page while `state` is
+    pending/processing, and read once more for `failure_reason` on the
+    failure screen."""
+
+    class Meta:
+        model = SubscriptionPaymentIntent
+        fields = ["id", "amount", "currency", "state", "failure_reason", "created_at"]
+        read_only_fields = fields
+
+
+class BusinessInfoSerializer(serializers.Serializer):
+    """Phase F. Multipart (the request carries a real file for `logo`).
+    `contact_email` is deliberately NOT a field here -- it is always the
+    authenticated user's own account email, taken server-side in the
+    view, never accepted from the client (see
+    apps.subscriptions.services.complete_checkout_with_business_info's
+    docstring)."""
+
+    store_name = serializers.CharField(max_length=255)
+    business_category = serializers.CharField(max_length=100)
+    contact_phone = serializers.CharField(max_length=32)
+    logo = serializers.ImageField(required=False, allow_null=True)
+
+
+class CreatedStoreSerializer(serializers.ModelSerializer):
+    """Minimal response for the business-info step -- just enough for
+    the frontend to redirect straight to the new Store's dashboard."""
+
+    class Meta:
+        model = Store
+        fields = ["id", "name", "slug"]
+        read_only_fields = fields

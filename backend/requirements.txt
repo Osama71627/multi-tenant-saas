@@ -18,3 +18,11 @@ sentry-sdk>=2.18,<3.0
 cryptography>=49.0,<51.0
 stripe>=11.1,<12.0
 pyotp>=2.9,<3.0
+# Store.logo (ImageField) -- Phase F business-info step, first real
+# uploaded-file field in this project (every other "image" so far is a
+# preview_image_url reference, not merchant-uploaded content). Floor
+# raised to 12.1 (from an initial 11.x pin) after `pip-audit` found the
+# 11.3.0 that satisfied the original constraint carries ~20 known CVEs,
+# all fixed by 12.1.1+ -- caught by this phase's own required
+# pip-audit run, not shipped and left for later.
+Pillow>=12.1,<13.0

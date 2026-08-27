@@ -49,6 +49,12 @@ EMAIL_HOST_USER = env("EMAIL_HOST_USER")  # noqa: F405
 EMAIL_HOST_PASSWORD = env("EMAIL_HOST_PASSWORD")  # noqa: F405
 EMAIL_USE_TLS = True
 
+# Gate 2 of SUBSCRIPTION_BILLING_MODE's two-gate mechanism (base.py) --
+# hardcoded, NOT read from env, so it can never be flipped to "demo" by
+# a deployment misconfiguration. See base.py's comment for the full
+# rationale.
+SUBSCRIPTION_BILLING_MODE = "live"
+
 SENTRY_DSN = env("SENTRY_DSN", default="")  # noqa: F405
 if SENTRY_DSN:
     import sentry_sdk

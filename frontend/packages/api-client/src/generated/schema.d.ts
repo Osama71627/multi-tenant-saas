@@ -2052,6 +2052,34 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/subscriptions/billing/webhook": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * @description Phase E's real webhook endpoint -- the same idempotent,
+         *     state-guarded `billing.apply_payment_event` this app's own demo-
+         *     provider-simulation Celery task calls, reachable over HTTP the way
+         *     a genuine provider callback would arrive. Deliberately `AllowAny`
+         *     (a real webhook is never an authenticated user session) but hard-
+         *     gated to `SUBSCRIPTION_BILLING_MODE == "demo"` -- there is no
+         *     "live" signature verification implemented yet (see
+         *     `apps.payments.services.process_webhook` for what that eventually
+         *     needs to look like), so this must never be reachable in production
+         *     regardless of URL discovery.
+         */
+        post: operations["api_v1_subscriptions_billing_webhook_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/subscriptions/checkout-sessions/current": {
         parameters: {
             query?: never;
@@ -2114,6 +2142,78 @@ export interface paths {
          *     the request body is a plan_version_id ONLY, never a price.
          */
         patch: operations["api_v1_subscriptions_checkout_sessions_current_partial_update"];
+        trace?: never;
+    };
+    "/api/v1/subscriptions/checkout-sessions/current/business-info": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * @description Phase F: the step that actually creates the Store. Requires a
+         *     session already in `awaiting_business_info` (see
+         *     `CheckoutSessionPayView`) -- `contact_email` is always
+         *     `request.user.email`, never accepted from the client.
+         */
+        post: operations["api_v1_subscriptions_checkout_sessions_current_business_info_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/subscriptions/checkout-sessions/current/pay": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * @description Phase E: starts (or retries) a real, sandbox-provider-backed
+         *     payment attempt -- gated by `settings.SUBSCRIPTION_BILLING_MODE`
+         *     (see that setting's comment in config/settings/base.py). Creates a
+         *     `SubscriptionPaymentIntent` and moves the session to
+         *     `payment_pending`; the intent resolves asynchronously (a Celery task
+         *     simulating the provider's own pending -> processing -> succeeded/
+         *     failed callback, processed through the exact same idempotent
+         *     webhook-handling code a real provider's callback would use -- see
+         *     `apps.subscriptions.billing`). Never creates a Store.
+         */
+        post: operations["api_v1_subscriptions_checkout_sessions_current_pay_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/subscriptions/checkout-sessions/current/payment-intent": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * @description Phase E: the authenticated user's most recent payment intent --
+         *     polled by the checkout page while `state` is pending/processing,
+         *     read once more for `failure_reason` on the failure screen. Scoped
+         *     by `request.user` only, same "server-side, never a client-held id"
+         *     posture as `CheckoutSessionCurrentView`.
+         */
+        get: operations["api_v1_subscriptions_checkout_sessions_current_payment_intent_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/api/v1/subscriptions/plans/public": {
@@ -2264,6 +2364,21 @@ export interface components {
          * @enum {string}
          */
         BillingIntervalEnum: "monthly" | "yearly";
+        /**
+         * @description Phase F. Multipart (the request carries a real file for `logo`).
+         *     `contact_email` is deliberately NOT a field here -- it is always the
+         *     authenticated user's own account email, taken server-side in the
+         *     view, never accepted from the client (see
+         *     apps.subscriptions.services.complete_checkout_with_business_info's
+         *     docstring).
+         */
+        BusinessInfoRequest: {
+            store_name: string;
+            business_category: string;
+            contact_phone: string;
+            /** Format: binary */
+            logo?: string | null;
+        };
         Cart: {
             /** Format: uuid */
             readonly id: string;
@@ -2318,12 +2433,15 @@ export interface components {
         /**
          * @description * `draft` - Draft
          *     * `ready_for_payment` - Ready for payment
+         *     * `payment_pending` - Payment pending
+         *     * `payment_failed` - Payment failed
+         *     * `awaiting_business_info` - Awaiting business info
          *     * `completed` - Completed
          *     * `abandoned` - Abandoned
          *     * `expired` - Expired
          * @enum {string}
          */
-        CheckoutStatusEnum: "draft" | "ready_for_payment" | "completed" | "abandoned" | "expired";
+        CheckoutStatusEnum: "draft" | "ready_for_payment" | "payment_pending" | "payment_failed" | "awaiting_business_info" | "completed" | "abandoned" | "expired";
         /** @description One-shot: Product + its default variant -- see apps/catalog/services.py:create_product. */
         CreateProductRequest: {
             name: string;
@@ -2345,10 +2463,31 @@ export interface components {
             theme_preset_id?: string | null;
         };
         /**
+         * @description Minimal response for the business-info step -- just enough for
+         *     the frontend to redirect straight to the new Store's dashboard.
+         */
+        CreatedStore: {
+            /** Format: uuid */
+            readonly id: string;
+            readonly name: string;
+            readonly slug: string;
+        };
+        /**
          * @description * `unfulfilled` - Unfulfilled
          * @enum {string}
          */
         FulfillmentStatusEnum: "unfulfilled";
+        /**
+         * @description Phase E. `card_number` is NEVER persisted (see
+         *     `SubscriptionPaymentIntent` -- no card-data field exists on it at
+         *     all) -- used only by `apps.subscriptions.billing.simulate_demo_outcome`
+         *     to pick which demo outcome fires. Not validated as a real card
+         *     number (Luhn, length, etc.) on purpose -- this is a sandbox
+         *     convention (Stripe-test-number-style), not a real payment field.
+         */
+        InitiatePaymentRequest: {
+            card_number: string;
+        };
         /**
          * @description * `flat` - Flat rate
          *     * `free` - Free shipping
@@ -2802,6 +2941,15 @@ export interface components {
             theme_preset_id?: string | null;
         };
         /**
+         * @description * `pending` - Pending
+         *     * `processing` - Processing
+         *     * `succeeded` - Succeeded
+         *     * `failed` - Failed
+         *     * `cancelled` - Cancelled
+         * @enum {string}
+         */
+        StateEnum: "pending" | "processing" | "succeeded" | "failed" | "cancelled";
+        /**
          * @description * `pending_payment` - Pending payment
          *     * `confirmed` - Confirmed
          *     * `cancelled` - Cancelled
@@ -3046,6 +3194,21 @@ export interface components {
             readonly created_at: string;
             /** Format: date-time */
             readonly updated_at: string;
+        };
+        /**
+         * @description Phase E. Polled by the checkout page while `state` is
+         *     pending/processing, and read once more for `failure_reason` on the
+         *     failure screen.
+         */
+        SubscriptionPaymentIntent: {
+            /** Format: uuid */
+            readonly id: string;
+            readonly amount: number;
+            readonly currency: string;
+            readonly state: components["schemas"]["StateEnum"];
+            readonly failure_reason: string;
+            /** Format: date-time */
+            readonly created_at: string;
         };
         /**
          * @description Phase 12 (dashboard subscription-status UI). Read-only -- writes
@@ -5229,6 +5392,24 @@ export interface operations {
             };
         };
     };
+    api_v1_subscriptions_billing_webhook_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No response body */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     api_v1_subscriptions_checkout_sessions_current_retrieve: {
         parameters: {
             query?: never;
@@ -5294,6 +5475,74 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SubscriptionCheckoutSession"];
+                };
+            };
+        };
+    };
+    api_v1_subscriptions_checkout_sessions_current_business_info_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["BusinessInfoRequest"];
+                "application/x-www-form-urlencoded": components["schemas"]["BusinessInfoRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CreatedStore"];
+                };
+            };
+        };
+    };
+    api_v1_subscriptions_checkout_sessions_current_pay_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["InitiatePaymentRequest"];
+                "application/x-www-form-urlencoded": components["schemas"]["InitiatePaymentRequest"];
+                "multipart/form-data": components["schemas"]["InitiatePaymentRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SubscriptionPaymentIntent"];
+                };
+            };
+        };
+    };
+    api_v1_subscriptions_checkout_sessions_current_payment_intent_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SubscriptionPaymentIntent"];
                 };
             };
         };

@@ -1,8 +1,12 @@
 from django.urls import path
 
 from apps.subscriptions.views import (
+    CheckoutSessionBusinessInfoView,
     CheckoutSessionCurrentView,
+    InitiatePaymentView,
+    PaymentIntentCurrentView,
     PublicPlanListView,
+    SubscriptionBillingWebhookView,
     SubscriptionStatusView,
 )
 
@@ -18,5 +22,29 @@ urlpatterns = [
         "subscriptions/checkout-sessions/current",
         CheckoutSessionCurrentView.as_view(),
         name="checkout-session-current",
+    ),
+    # Phase E.
+    path(
+        "subscriptions/checkout-sessions/current/pay",
+        InitiatePaymentView.as_view(),
+        name="checkout-session-pay",
+    ),
+    path(
+        "subscriptions/checkout-sessions/current/payment-intent",
+        PaymentIntentCurrentView.as_view(),
+        name="checkout-session-payment-intent",
+    ),
+    path(
+        "subscriptions/billing/webhook",
+        SubscriptionBillingWebhookView.as_view(),
+        name="subscription-billing-webhook",
+    ),
+    # Phase F (already built, not part of Phase E's own flow -- see
+    # apps/subscriptions/services.py's `complete_checkout_with_business_info`
+    # docstring).
+    path(
+        "subscriptions/checkout-sessions/current/business-info",
+        CheckoutSessionBusinessInfoView.as_view(),
+        name="checkout-session-business-info",
     ),
 ]

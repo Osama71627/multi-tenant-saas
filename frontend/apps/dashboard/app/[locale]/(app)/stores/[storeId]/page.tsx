@@ -1,5 +1,6 @@
 import { Badge } from "@saas/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@saas/ui/card";
+import { GettingStartedPanel } from "@/components/getting-started-panel";
 import { OrdersChart } from "@/components/orders-chart";
 import { SetupChecklist } from "@/components/setup-checklist";
 import { serverFetch } from "@/lib/session";
@@ -42,10 +43,13 @@ const STATUS_VARIANT: Record<string, "success" | "warning" | "destructive" | "se
 
 export default async function StoreOverviewPage({
   params,
+  searchParams,
 }: {
-  params: Promise<{ storeId: string }>;
+  params: Promise<{ locale: string; storeId: string }>;
+  searchParams: Promise<{ welcome?: string }>;
 }) {
-  const { storeId } = await params;
+  const { locale, storeId } = await params;
+  const { welcome } = await searchParams;
   const t = await getTranslations("nav");
   const tAnalytics = await getTranslations("analytics");
 
@@ -65,6 +69,8 @@ export default async function StoreOverviewPage({
 
   return (
     <div className="space-y-6">
+      {welcome === "1" ? <GettingStartedPanel locale={locale} storeId={storeId} /> : null}
+
       <div>
         <h1 className="text-2xl font-semibold">{store.name}</h1>
         <p className="text-sm text-muted-foreground">{store.slug}</p>

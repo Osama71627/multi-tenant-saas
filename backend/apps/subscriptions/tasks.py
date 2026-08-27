@@ -29,7 +29,7 @@ from celery import shared_task
 from django.utils import timezone
 
 from apps.stores.models import Store
-from apps.subscriptions import services
+from apps.subscriptions import billing, services
 from apps.subscriptions.models import Subscription
 from apps.tenancy.celery import PlatformTask, TenantTask, dispatch_for_store
 from apps.tenancy.context import TenantContext, tenant_context
@@ -111,3 +111,47 @@ def _roll_period_forward(subscription: Subscription) -> None:
     )
     if amount > 0:
         services.issue_invoice_for_period(subscription=subscription)
+
+
+# --------------------------------------------------------------------------
+# Phase E ("product vision reset" -- Subscription Checkout demo billing).
+# `SubscriptionPaymentIntent`/`SubscriptionCheckoutSession` are plain
+# `BaseModel` (no tenant, no RLS) -- a genuinely tenant-free task, unlike
+# every task above this comment, so it needs neither `PlatformTask` nor
+# `TenantTask`, same as any other plain `@shared_task` elsewhere in this
+# project with no per-store data to scope.
+# --------------------------------------------------------------------------
+
+
+@shared_task(name="apps.subscriptions.tasks.simulate_demo_payment_provider")
+def simulate_demo_payment_provider(intent_id: str, outcome: str) -> None:
+    """Stands in for a real provider's own async processing + webhook
+    callback -- runs `billing.apply_payment_event` twice, exactly the
+    same function the real HTTP webhook view would call, with freshly
+    generated `external_id`s (this provider's equivalent of a real
+    provider's own unique delivery id): first a `payment.processing`
+    event, then `payment.succeeded`/`payment.failed` depending on
+    `outcome` (decided once, server-side, in
+    `apps.subscriptions.billing.initiate_payment` -- never re-decided
+    here). Runs synchronously in tests
+    (`CELERY_TASK_ALWAYS_EAGER=True`, config/settings/test.py) and via a
+    real Celery worker otherwise -- the SAME idempotent, state-guarded
+    code path either way, so a duplicate/out-of-order delivery is
+    handled identically regardless of what's driving it."""
+    # Deterministic, not random: a real provider reuses the SAME event
+    # id when it retries delivery of the SAME logical event, precisely
+    # so the receiver's dedup (SubscriptionWebhookEvent.external_id,
+    # unique) works -- a random id per attempt would defeat that, since
+    # a Celery-level retry of this task would then look like a brand
+    # new event instead of a duplicate delivery of the same one.
+    billing.apply_payment_event(
+        intent_id=intent_id,
+        external_id=f"demo-{intent_id}-processing",
+        kind="payment.processing",
+    )
+    kind = "payment.succeeded" if outcome == "succeeded" else "payment.failed"
+    billing.apply_payment_event(
+        intent_id=intent_id,
+        external_id=f"demo-{intent_id}-{outcome}",
+        kind=kind,
+    )

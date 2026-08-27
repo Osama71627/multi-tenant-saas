@@ -61,8 +61,98 @@
       "api_access": "API access",
       "custom_domain": "Custom domain"
     },
-    "continueToPayment": "Continue to payment",
-    "comingSoon": "Your plan is saved. Subscription checkout is coming in the next update — no store has been created yet."
+    "continueToPayment": "Continue to payment"
+  },
+  "subscriptionCheckout": {
+    "title": "Subscription checkout",
+    "subtitle": "Review your plan and pay to continue — your store isn't created yet.",
+    "summary": {
+      "title": "Order summary",
+      "theme": "Theme",
+      "plan": "Plan",
+      "monthly": "Monthly",
+      "total": "Total due today"
+    },
+    "feature": {
+      "api_access": "API access",
+      "custom_domain": "Custom domain"
+    },
+    "customer": {
+      "title": "Your details",
+      "name": "Full name",
+      "email": "Email"
+    },
+    "paymentMethod": {
+      "title": "Payment method",
+      "notice": "Test mode — no real charge, no card data stored.",
+      "cardNumber": "Card number",
+      "expiry": "Expiry",
+      "cvc": "CVC",
+      "payNow": "Pay now",
+      "error": "Couldn't start the payment. Please try again."
+    },
+    "processing": {
+      "title": "Processing your payment…",
+      "body": "This only takes a moment."
+    },
+    "success": {
+      "title": "Payment successful 🎉",
+      "body": "Next step: enter your business information to create your store.",
+      "cta": "Continue setting up your store"
+    },
+    "failure": {
+      "title": "We couldn't complete your payment",
+      "body": "Your card was declined. No charge was made.",
+      "reason": {
+        "card_declined": "Your card was declined. No charge was made.",
+        "cancelled": "The payment was cancelled. No charge was made."
+      },
+      "retry": "Try again",
+      "backToPlan": "Back to plans"
+    }
+  },
+  "businessInfo": {
+    "title": "Tell us about your business",
+    "subtitle": "This becomes your store's public profile.",
+    "cardTitle": "Business information",
+    "logo": "Logo",
+    "uploadLogo": "Upload image",
+    "storeName": "Store name",
+    "category": {
+      "label": "Business category",
+      "fashion": "Fashion & Apparel",
+      "electronics": "Electronics",
+      "food": "Food & Beverage",
+      "beauty": "Beauty & Personal Care",
+      "home": "Home & Living",
+      "services": "Services",
+      "other": "Other",
+      "otherPlaceholder": "Describe your business"
+    },
+    "contactPhone": "Contact phone",
+    "contactEmail": "Contact email",
+    "submit": "Create my store",
+    "submitError": "Couldn't create your store. Please try again."
+  },
+  "gettingStarted": {
+    "title": "Your store is ready — here's how to get started",
+    "subtitle": "A few quick steps to launch",
+    "dismiss": "Dismiss",
+    "addProducts": {
+      "title": "Add products",
+      "body": "Bring in your catalog and set your prices.",
+      "cta": "Add a product"
+    },
+    "connectPayments": {
+      "title": "Connect a payment method",
+      "body": "Choose how your customers will pay.",
+      "cta": "Set up payments"
+    },
+    "previewStore": {
+      "title": "Preview your store",
+      "body": "See exactly what your customers will see.",
+      "cta": "Preview"
+    }
   },
   "themesMarketplace": {
     "title": "Choose your store design",

@@ -272,6 +272,23 @@ class SubscriptionCheckoutSession(BaseModel, TimeStampedModel):
     class CheckoutStatus(models.TextChoices):
         DRAFT = "draft", "Draft"
         READY_FOR_PAYMENT = "ready_for_payment", "Ready for payment"
+        # Phase E: a SubscriptionPaymentIntent is in flight (the demo
+        # provider's own pending/processing states) -- set the instant
+        # payment is initiated, left by the (idempotent) webhook handler
+        # once the intent resolves. See apps/subscriptions/billing.py.
+        PAYMENT_PENDING = "payment_pending", "Payment pending"
+        # The most recent intent resolved to failed/cancelled. Retryable
+        # from THIS SAME session (a new intent, same
+        # SubscriptionCheckoutSession row) -- never a reason to abandon
+        # it or start a second one.
+        PAYMENT_FAILED = "payment_failed", "Payment failed"
+        # Demo payment succeeded, business info not collected yet -- the
+        # Store does not exist until that step also succeeds
+        # (apps.subscriptions.services.complete_checkout_with_business_info,
+        # Phase F -- not reachable through anything Phase E itself
+        # calls). This IS "Payment Successful / Ready for Business
+        # Information" from the approved Phase E spec.
+        AWAITING_BUSINESS_INFO = "awaiting_business_info", "Awaiting business info"
         COMPLETED = "completed", "Completed"
         ABANDONED = "abandoned", "Abandoned"
         EXPIRED = "expired", "Expired"
@@ -303,7 +320,7 @@ class SubscriptionCheckoutSession(BaseModel, TimeStampedModel):
         related_name="checkout_sessions",
     )
     checkout_status = models.CharField(
-        max_length=20, choices=CheckoutStatus.choices, default=CheckoutStatus.DRAFT
+        max_length=24, choices=CheckoutStatus.choices, default=CheckoutStatus.DRAFT
     )
     payment_status = models.CharField(
         max_length=16, choices=PaymentStatus.choices, default=PaymentStatus.NOT_STARTED
@@ -332,13 +349,116 @@ class SubscriptionCheckoutSession(BaseModel, TimeStampedModel):
             # applied one layer earlier in the journey.
             models.UniqueConstraint(
                 fields=["user"],
-                condition=models.Q(checkout_status__in=["draft", "ready_for_payment"]),
+                # Phase E: `awaiting_business_info` (paid, not yet a
+                # Store) added to the active set -- without it here too,
+                # a user who paid and then somehow re-triggered
+                # start_or_update_checkout_session (e.g. revisiting the
+                # marketplace) would silently get a SECOND session while
+                # the first, already-paid one sat orphaned. Only
+                # `completed`/`abandoned`/`expired` are terminal.
+                condition=models.Q(
+                    checkout_status__in=[
+                        "draft",
+                        "ready_for_payment",
+                        "payment_pending",
+                        "payment_failed",
+                        "awaiting_business_info",
+                    ]
+                ),
                 name="uniq_active_checkout_session_per_user",
             ),
         ]
 
     def __str__(self) -> str:  # pragma: no cover - trivial
         return f"SubscriptionCheckoutSession({self.user_id}, {self.checkout_status})"
+
+
+class SubscriptionPaymentIntent(BaseModel, TimeStampedModel):
+    """Phase E: one row per payment ATTEMPT on a
+    `SubscriptionCheckoutSession` -- a retry after `payment_failed`
+    creates a NEW intent rather than reusing the failed one, same shape
+    as `apps.payments.PaymentIntent` (one per attempt, not one per
+    order/session for its whole lifetime). Deliberately its own model in
+    `apps.subscriptions`, NOT a reuse of `apps.payments.PaymentIntent` --
+    that model is `TenantOwnedModel` (requires a Store, RLS-scoped) and
+    is the storefront customer -> merchant money path; this is merchant
+    -> platform money, and there is no Store yet at this point in the
+    journey (same `BaseModel`/user-scoped shape as
+    `SubscriptionCheckoutSession` itself, no RLS).
+
+    `amount`/`currency` are captured from `PlanVersion` at CREATION time
+    (`apps.subscriptions.billing.initiate_payment`) and never re-derived
+    afterwards -- the same "server is the only source of truth, snapshot
+    once" discipline `Invoice.amount`'s docstring describes, applied one
+    layer earlier since no real `Invoice` can exist without a Store.
+    """
+
+    class State(models.TextChoices):
+        PENDING = "pending", "Pending"
+        PROCESSING = "processing", "Processing"
+        SUCCEEDED = "succeeded", "Succeeded"
+        FAILED = "failed", "Failed"
+        CANCELLED = "cancelled", "Cancelled"
+
+    checkout_session = models.ForeignKey(
+        "subscriptions.SubscriptionCheckoutSession",
+        on_delete=models.CASCADE,
+        related_name="payment_intents",
+    )
+    amount = models.PositiveIntegerField()
+    currency = models.CharField(max_length=3)
+    state = models.CharField(max_length=16, choices=State.choices, default=State.PENDING)
+    # Demo-provider-generated opaque reference -- the analog of a real
+    # provider's PaymentIntent/charge id. Never used as a security
+    # boundary on its own (see SubscriptionWebhookEvent.external_id,
+    # which IS the idempotency key).
+    provider_ref = models.CharField(max_length=64, blank=True, default="")
+    failure_reason = models.CharField(max_length=255, blank=True, default="")
+
+    class Meta:
+        db_table = "subscriptions_subscriptionpaymentintent"
+        constraints = [
+            # At most one ACTIVE (pending/processing) intent per session
+            # at a time -- mirrors apps.payments.PaymentIntent's own
+            # DuplicateActivePaymentIntentError guard. A resolved
+            # (succeeded/failed/cancelled) intent never blocks a new one.
+            models.UniqueConstraint(
+                fields=["checkout_session"],
+                condition=models.Q(state__in=["pending", "processing"]),
+                name="uniq_active_payment_intent_per_checkout_session",
+            ),
+        ]
+
+    def __str__(self) -> str:  # pragma: no cover - trivial
+        return f"SubscriptionPaymentIntent({self.checkout_session_id}, {self.state})"
+
+
+class SubscriptionWebhookEvent(BaseModel, TimeStampedModel):
+    """Phase E webhook-delivery dedup -- exact same shape as
+    `apps.payments.WebhookEvent` (create-or-IntegrityError claim on a
+    unique delivery id), applied to the demo billing provider's own
+    callbacks instead of a real provider's signed webhook. `external_id`
+    is the demo provider's own event id (a fresh uuid per delivery
+    attempt in `apps.subscriptions.billing`'s Celery task) -- unique
+    globally (this provider has exactly one "account", unlike
+    `apps.payments.WebhookEvent`'s per-`provider_config` uniqueness,
+    which exists because a store can have several configured providers)."""
+
+    intent = models.ForeignKey(
+        "subscriptions.SubscriptionPaymentIntent",
+        on_delete=models.CASCADE,
+        related_name="webhook_events",
+    )
+    external_id = models.CharField(max_length=128, unique=True)
+    kind = models.CharField(max_length=32)
+    attempts = models.PositiveIntegerField(default=1)
+    processed_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        db_table = "subscriptions_subscriptionwebhookevent"
+
+    def __str__(self) -> str:  # pragma: no cover - trivial
+        return f"SubscriptionWebhookEvent({self.external_id}, {self.kind})"
 
 
 class Invoice(TenantOwnedModel):

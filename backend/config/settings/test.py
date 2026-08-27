@@ -15,9 +15,16 @@ test database. Every plain `Model.objects...` call in a test therefore
 goes through the actual restricted role.
 """
 
+import tempfile
+
 from .base import *  # noqa: F403
 
 DEBUG = False
+
+# Store.logo (Phase F) writes real files -- route them to a throwaway
+# temp dir instead of the dev mediafiles/ folder, same spirit as the
+# ephemeral test database above.
+MEDIA_ROOT = tempfile.mkdtemp(prefix="saas-test-media-")
 SECRET_KEY = "test-secret-key-not-for-any-real-use"  # noqa: S105 # nosec B105
 
 # Real CI failure found on the first actual GitHub Actions run: this used

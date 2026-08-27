@@ -207,6 +207,15 @@ USE_TZ = True
 
 STATIC_URL = "static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
+# Store.logo (Phase F business-info step) is this project's first real
+# uploaded-file field -- every image before it was a reference URL
+# (ThemePreset.preview_image_url), never merchant-uploaded content.
+# Local disk storage, same tier as STATIC_ROOT above: fine for local/
+# staging; a real deployment behind object storage (S3-compatible) is a
+# documented future extension, not built here (same "not verified in
+# this dev environment" caveat other infra pieces carry since Phase 1).
+MEDIA_URL = "media/"
+MEDIA_ROOT = BASE_DIR / "mediafiles"
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 # --------------------------------------------------------------------------
@@ -429,6 +438,26 @@ LOGGING = {
         "django_structlog": {"handlers": ["console"], "level": "INFO", "propagate": False},
     },
 }
+
+# --------------------------------------------------------------------------
+# Subscription billing mode -- "product vision reset" Phase E. Two
+# independent gates so demo (fake, no-op) billing can never activate
+# where real money would be at stake, matching the same fail-safe shape
+# PAYMENT_ENCRYPTION_KEY/MFA_ENCRYPTION_KEY use above:
+#   Gate 1 (here): reads from the environment, defaults to "demo" --
+#   safe for local/test, where there is no real payment provider anyway.
+#   Gate 2 (config/settings/production.py): unconditionally overrides
+#   this to "live", ignoring the environment variable entirely -- not
+#   read from env there on purpose, so no deployment misconfiguration
+#   can ever leave demo billing reachable in production.
+# apps.subscriptions' demo-pay endpoint checks this and refuses to run
+# unless it reads exactly "demo". There is no "live" implementation yet
+# (no real subscription-billing provider integration exists) -- in
+# production this setting currently means "subscription checkout is
+# disabled outright", which is the correct, safe state until a real
+# provider integration is designed and approved.
+# --------------------------------------------------------------------------
+SUBSCRIPTION_BILLING_MODE = env("SUBSCRIPTION_BILLING_MODE", default="demo")
 
 # --------------------------------------------------------------------------
 # Tax (Q2 decision: never hard-code a rate -- configuration lives in DB,

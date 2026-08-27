@@ -14,18 +14,23 @@ from __future__ import annotations
 from drf_spectacular.utils import extend_schema
 from rest_framework import permissions
 from rest_framework.exceptions import NotFound
+from rest_framework.parsers import FormParser, MultiPartParser
 from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from apps.stores.mixins import StoreScopedAPIView
-from apps.subscriptions import services
+from apps.subscriptions import billing, services
 from apps.subscriptions.models import PlanVersion, Subscription
 from apps.subscriptions.serializers import (
+    BusinessInfoSerializer,
+    CreatedStoreSerializer,
+    InitiatePaymentSerializer,
     PublicPlanVersionSerializer,
     SelectPlanSerializer,
     StartSubscriptionCheckoutSessionSerializer,
     SubscriptionCheckoutSessionSerializer,
+    SubscriptionPaymentIntentSerializer,
     SubscriptionStatusSerializer,
 )
 
@@ -119,3 +124,105 @@ class CheckoutSessionCurrentView(APIView):
         except services.NoActiveCheckoutSessionError as exc:
             return Response({"detail": str(exc)}, status=409)
         return Response(SubscriptionCheckoutSessionSerializer(session).data)
+
+
+class InitiatePaymentView(APIView):
+    """Phase E: starts (or retries) a real, sandbox-provider-backed
+    payment attempt -- gated by `settings.SUBSCRIPTION_BILLING_MODE`
+    (see that setting's comment in config/settings/base.py). Creates a
+    `SubscriptionPaymentIntent` and moves the session to
+    `payment_pending`; the intent resolves asynchronously (a Celery task
+    simulating the provider's own pending -> processing -> succeeded/
+    failed callback, processed through the exact same idempotent
+    webhook-handling code a real provider's callback would use -- see
+    `apps.subscriptions.billing`). Never creates a Store."""
+
+    permission_classes = [permissions.IsAuthenticated]
+
+    @extend_schema(request=InitiatePaymentSerializer, responses=SubscriptionPaymentIntentSerializer)
+    def post(self, request: Request) -> Response:
+        body = InitiatePaymentSerializer(data=request.data)
+        body.is_valid(raise_exception=True)
+        try:
+            intent = billing.initiate_payment(
+                user=request.user, card_number=body.validated_data["card_number"]
+            )
+        except billing.BillingModeError as exc:
+            return Response({"detail": str(exc)}, status=503)
+        except billing.CheckoutNotPayableError as exc:
+            return Response({"detail": str(exc)}, status=409)
+        return Response(SubscriptionPaymentIntentSerializer(intent).data, status=201)
+
+
+class PaymentIntentCurrentView(APIView):
+    """Phase E: the authenticated user's most recent payment intent --
+    polled by the checkout page while `state` is pending/processing,
+    read once more for `failure_reason` on the failure screen. Scoped
+    by `request.user` only, same "server-side, never a client-held id"
+    posture as `CheckoutSessionCurrentView`."""
+
+    permission_classes = [permissions.IsAuthenticated]
+
+    @extend_schema(responses=SubscriptionPaymentIntentSerializer)
+    def get(self, request: Request) -> Response:
+        intent = billing.get_active_intent(user=request.user)
+        if intent is None:
+            raise NotFound("No payment intent for this user yet.")
+        return Response(SubscriptionPaymentIntentSerializer(intent).data)
+
+
+class SubscriptionBillingWebhookView(APIView):
+    """Phase E's real webhook endpoint -- the same idempotent,
+    state-guarded `billing.apply_payment_event` this app's own demo-
+    provider-simulation Celery task calls, reachable over HTTP the way
+    a genuine provider callback would arrive. Deliberately `AllowAny`
+    (a real webhook is never an authenticated user session) but hard-
+    gated to `SUBSCRIPTION_BILLING_MODE == "demo"` -- there is no
+    "live" signature verification implemented yet (see
+    `apps.payments.services.process_webhook` for what that eventually
+    needs to look like), so this must never be reachable in production
+    regardless of URL discovery."""
+
+    permission_classes = [permissions.AllowAny]
+
+    def post(self, request: Request) -> Response:
+        try:
+            billing.require_demo_billing_mode()
+        except billing.BillingModeError as exc:
+            return Response({"detail": str(exc)}, status=503)
+
+        intent_id = request.data.get("intent_id")
+        external_id = request.data.get("external_id")
+        kind = request.data.get("kind")
+        if not intent_id or not external_id or not kind:
+            return Response(
+                {"detail": "intent_id, external_id, and kind are all required."}, status=400
+            )
+        billing.apply_payment_event(intent_id=intent_id, external_id=external_id, kind=kind)
+        return Response(status=200)
+
+
+class CheckoutSessionBusinessInfoView(APIView):
+    """Phase F: the step that actually creates the Store. Requires a
+    session already in `awaiting_business_info` (see
+    `CheckoutSessionPayView`) -- `contact_email` is always
+    `request.user.email`, never accepted from the client."""
+
+    permission_classes = [permissions.IsAuthenticated]
+    parser_classes = [MultiPartParser, FormParser]
+
+    @extend_schema(request=BusinessInfoSerializer, responses=CreatedStoreSerializer)
+    def post(self, request: Request) -> Response:
+        body = BusinessInfoSerializer(data=request.data)
+        body.is_valid(raise_exception=True)
+        try:
+            store = services.complete_checkout_with_business_info(
+                user=request.user,
+                store_name=body.validated_data["store_name"],
+                business_category=body.validated_data["business_category"],
+                contact_phone=body.validated_data["contact_phone"],
+                logo=body.validated_data.get("logo"),
+            )
+        except services.CheckoutNotAwaitingBusinessInfoError as exc:
+            return Response({"detail": str(exc)}, status=409)
+        return Response(CreatedStoreSerializer(store).data, status=201)

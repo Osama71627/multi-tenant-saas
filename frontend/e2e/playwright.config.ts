@@ -18,6 +18,18 @@ export default defineConfig({
   timeout: 60_000,
   expect: { timeout: 10_000 },
   fullyParallel: false,
+  // Explicit, not just implied by fullyParallel:false (which only
+  // stops tests WITHIN one file running concurrently -- Playwright
+  // still defaults to multiple worker PROCESSES across files). Real
+  // failure found adding subscription-checkout-journey.spec.ts: run
+  // together with merchant-and-customer-journey.spec.ts on 2 workers,
+  // the local Celery worker (solo pool, this project's Windows-
+  // compatible dev setup) serialized both specs' background tasks and
+  // Phase E's async demo-payment resolution missed its 15s window --
+  // not a logic bug (the same spec alone passes reliably in ~7s), a
+  // genuine shared-resource contention this suite's specs were never
+  // designed to survive running in parallel against each other.
+  workers: 1,
   retries: 0,
   reporter: "list",
   use: {

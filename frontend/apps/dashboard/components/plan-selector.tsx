@@ -7,11 +7,26 @@ import { Skeleton } from "@saas/ui/skeleton";
 import { Check, Loader2, Palette } from "lucide-react";
 import { useTranslations } from "next-intl";
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
+import { useEffect, useRef } from "react";
 
-import { useCheckoutSession, useSelectPlan, useStartCheckoutSession } from "@/lib/hooks/use-checkout-session";
+import {
+  useCheckoutSession,
+  useSelectPlan,
+  useStartCheckoutSession,
+} from "@/lib/hooks/use-checkout-session";
 import { usePublicPlans } from "@/lib/hooks/use-public-plans";
 import { usePublicThemePresets } from "@/lib/hooks/use-public-theme-presets";
+
+// Any status past plan-selection -- once a payment attempt exists (or
+// business info is next), /subscription/checkout is the single page
+// that renders whichever of those states applies (approved Phase E
+// spec: one continuous checkout screen, not a route per status).
+const PAST_PLAN_SELECTION = new Set([
+  "payment_pending",
+  "payment_failed",
+  "awaiting_business_info",
+]);
 
 // `default_settings` is a plain Django JSONField -- drf-spectacular has
 // no way to know its shape, so the generated client types it `unknown`
@@ -37,12 +52,12 @@ export function PlanSelector({
   themePresetIdFromUrl: string | null;
 }) {
   const t = useTranslations("plans");
+  const router = useRouter();
   const { data: session, isLoading: sessionLoading } = useCheckoutSession();
   const { data: plans, isLoading: plansLoading } = usePublicPlans();
   const { data: presets } = usePublicThemePresets();
   const startSession = useStartCheckoutSession();
   const selectPlan = useSelectPlan();
-  const [confirmed, setConfirmed] = useState(false);
 
   // Attaches the theme from the marketplace/register redirect to the
   // user's session exactly once. A session that already exists (e.g.
@@ -58,11 +73,25 @@ export function PlanSelector({
     // eslint-disable-next-line react-hooks/exhaustive-deps -- fire once per mount, not on every session refetch
   }, [themePresetIdFromUrl, sessionLoading]);
 
+  // A session already past plan-selection (payment in flight, failed,
+  // or already paid -- e.g. this page was simply revisited) has
+  // nothing left to do here -- /subscription/checkout is the single
+  // page that renders whichever of those states applies.
+  useEffect(() => {
+    if (session?.checkout_status && PAST_PLAN_SELECTION.has(session.checkout_status)) {
+      router.replace(`/${locale}/subscription/checkout`);
+    }
+  }, [session?.checkout_status, router, locale]);
+
   const effectiveThemeId = session?.theme_preset_id ?? themePresetIdFromUrl;
   const selectedPreset = presets?.find((p) => p.id === effectiveThemeId);
   const palette = selectedPreset?.default_settings as ThemePresetPalette | undefined;
 
-  if (sessionLoading || startSession.isPending) {
+  if (
+    sessionLoading ||
+    startSession.isPending ||
+    (session?.checkout_status && PAST_PLAN_SELECTION.has(session.checkout_status))
+  ) {
     return (
       <div className="mx-auto max-w-4xl space-y-6 px-4 py-12">
         <Skeleton className="h-24 w-full" />
@@ -166,10 +195,7 @@ export function PlanSelector({
                       className="w-full"
                       variant={isSelected ? "secondary" : "default"}
                       disabled={selectPlan.isPending}
-                      onClick={() => {
-                        setConfirmed(false);
-                        selectPlan.mutate({ plan_version_id: plan.id });
-                      }}
+                      onClick={() => selectPlan.mutate({ plan_version_id: plan.id })}
                     >
                       {selectPlan.isPending && selectPlan.variables?.plan_version_id === plan.id ? (
                         <Loader2 className="h-4 w-4 animate-spin" />
@@ -189,13 +215,9 @@ export function PlanSelector({
 
       {session?.checkout_status === "ready_for_payment" ? (
         <div className="flex flex-col items-center gap-3 border-t pt-8 text-center">
-          {confirmed ? (
-            <p className="max-w-sm text-sm text-muted-foreground">{t("comingSoon")}</p>
-          ) : (
-            <Button size="lg" onClick={() => setConfirmed(true)}>
-              {t("continueToPayment")}
-            </Button>
-          )}
+          <Button size="lg" onClick={() => router.push(`/${locale}/subscription/checkout`)}>
+            {t("continueToPayment")}
+          </Button>
         </div>
       ) : null}
     </div>

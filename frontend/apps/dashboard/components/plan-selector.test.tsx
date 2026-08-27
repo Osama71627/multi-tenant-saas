@@ -10,6 +10,12 @@ vi.mock("next-intl", () => ({
     params ? `${key}:${JSON.stringify(params)}` : key,
 }));
 
+const push = vi.fn();
+const replace = vi.fn();
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ push, replace }),
+}));
+
 // `@/lib/api-client` exports a SINGLETON openapi-fetch client, created
 // via `createClient({ baseUrl: "/api/bff" })` -- which captures
 // `globalThis.fetch` as a default parameter AT MODULE-IMPORT TIME
@@ -77,6 +83,8 @@ afterEach(() => {
   getMock.mockReset();
   postMock.mockReset();
   patchMock.mockReset();
+  push.mockReset();
+  replace.mockReset();
 });
 
 function stubReadEndpoints(session: { status: number; data?: unknown }) {
@@ -139,7 +147,7 @@ describe("PlanSelector", () => {
     );
   });
 
-  it("selecting a plan PATCHes only a plan_version_id, never a price, and shows the confirmation", async () => {
+  it("selecting a plan PATCHes only a plan_version_id, never a price", async () => {
     const user = userEvent.setup();
     stubReadEndpoints({ status: 404 });
     postMock.mockResolvedValue({
@@ -180,8 +188,50 @@ describe("PlanSelector", () => {
       "/api/v1/subscriptions/checkout-sessions/current",
       expect.objectContaining({ body: { plan_version_id: "plan-pro" } })
     );
+  });
 
-    await user.click(screen.getByText("continueToPayment"));
-    expect(await screen.findByText("comingSoon")).toBeInTheDocument();
+  it("Continue to payment navigates to the dedicated subscription checkout page", async () => {
+    const user = userEvent.setup();
+    stubReadEndpoints({
+      status: 200,
+      data: {
+        id: "session-1",
+        theme_preset_id: "preset-fashion",
+        plan_version: PLANS[1],
+        checkout_status: "ready_for_payment",
+        payment_status: "not_started",
+        provisioning_status: "not_started",
+      },
+    });
+
+    // No `?theme=` this time -- a bare revisit of a session that already
+    // has a plan selected, not a fresh arrival from the marketplace.
+    renderWithClient(<PlanSelector locale="en" themePresetIdFromUrl={null} />);
+
+    await user.click(await screen.findByText("continueToPayment"));
+
+    // The actual payment form/summary lives on /subscription/checkout
+    // (subscription-checkout.tsx), not here -- this page's only job
+    // past plan-selection is to send the user there.
+    expect(push).toHaveBeenCalledWith("/en/subscription/checkout");
+    expect(postMock).not.toHaveBeenCalled();
+  });
+
+  it("a session already past plan-selection redirects straight to subscription checkout", async () => {
+    stubReadEndpoints({
+      status: 200,
+      data: {
+        id: "session-1",
+        theme_preset_id: "preset-fashion",
+        plan_version: PLANS[1],
+        checkout_status: "payment_pending",
+        payment_status: "pending",
+        provisioning_status: "not_started",
+      },
+    });
+
+    renderWithClient(<PlanSelector locale="en" themePresetIdFromUrl={null} />);
+
+    await waitFor(() => expect(replace).toHaveBeenCalledWith("/en/subscription/checkout"));
   });
 });

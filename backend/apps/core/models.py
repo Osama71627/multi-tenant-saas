@@ -46,7 +46,15 @@ class EventLog(BaseModel, TimeStampedModel):
     payload = models.JSONField(default=dict, blank=True)
 
     class Meta:
-        ordering = ["-created_at"]
+        # "-id" as a secondary key, not just "-created_at": found while
+        # running the full suite for Phase E (unrelated to it) --
+        # `created_at` alone ties when two rows are created faster than
+        # the DB column's timestamp resolution, making "newest first"
+        # nondeterministic under real load. `id` is a UUID7 (time-
+        # sortable by construction, apps.core.uuid7), so "-id" resolves
+        # the tie in true creation order instead of falling back to
+        # whatever arbitrary order Postgres happens to return.
+        ordering = ["-created_at", "-id"]
         indexes = [models.Index(fields=["store_id", "event_type", "-created_at"])]
 
     def __str__(self) -> str:  # pragma: no cover - trivial
