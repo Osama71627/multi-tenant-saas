@@ -43,6 +43,27 @@
       "copyright": "© {year} Multi-Tenant SaaS"
     }
   },
+  "plans": {
+    "selectedThemeLabel": "القالب الذي اخترته",
+    "themeLoading": "جارٍ التحميل…",
+    "changeTheme": "تغيير القالب",
+    "noThemeTitle": "اختر قالبًا أولًا",
+    "noThemeBody": "اختر تصميمًا لمتجرك من سوق القوالب قبل اختيار الخطة.",
+    "browseThemes": "تصفّح القوالب",
+    "title": "اختر خطتك",
+    "subtitle": "اختر الخطة المناسبة لعملك — لم يتم إنشاء متجرك بعد.",
+    "selected": "مُختارة",
+    "selectPlan": "اختيار هذه الخطة",
+    "perMonth": "/ شهريًا",
+    "unlimitedProducts": "منتجات غير محدودة",
+    "productsLimit": "حتى {count} منتج",
+    "feature": {
+      "api_access": "الوصول عبر API",
+      "custom_domain": "نطاق مخصّص"
+    },
+    "continueToPayment": "متابعة إلى الدفع",
+    "comingSoon": "تم حفظ خطتك. صفحة الدفع للاشتراك قادمة في التحديث القادم — لم يتم إنشاء أي متجر بعد."
+  },
   "themesMarketplace": {
     "title": "اختر تصميم متجرك",
     "subtitle": "تصفّح تصاميم متاجر حقيقية وجاهزة. عايِن أيًّا منها قبل أن تختاره.",

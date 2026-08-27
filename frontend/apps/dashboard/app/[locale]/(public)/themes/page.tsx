@@ -79,9 +79,12 @@ export default async function ThemeMarketplacePage({
                     </Link>
                   </Button>
                   <Button asChild className="flex-1">
-                    <Link href={`/${locale}/register?theme=${preset.theme_code}`}>
-                      {t("useTheme")}
-                    </Link>
+                    {/* Carries the PRESET id, not the theme code -- Phase D's
+                        checkout session stores this opaquely and the frontend
+                        resolves it back to a name/preview via the same public
+                        preset list, so an id is unambiguous even if a theme
+                        ever has more than one active preset. */}
+                    <Link href={`/${locale}/register?theme=${preset.id}`}>{t("useTheme")}</Link>
                   </Button>
                 </CardContent>
               </Card>

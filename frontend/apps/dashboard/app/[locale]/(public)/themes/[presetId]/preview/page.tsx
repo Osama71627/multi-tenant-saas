@@ -140,7 +140,9 @@ export default async function PublicThemePreviewPage({
             {t("backToMarketplace")}
           </Link>
           <Button asChild size="sm">
-            <Link href={`/${locale}/register?theme=${preset.theme_code}`}>{t("cta")}</Link>
+            {/* The preset id, not the theme code -- see the marketplace
+                card's identical link for why. */}
+            <Link href={`/${locale}/register?theme=${preset.id}`}>{t("cta")}</Link>
           </Button>
         </div>
       </div>

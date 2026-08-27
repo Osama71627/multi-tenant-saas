@@ -5,7 +5,7 @@ import { Button } from "@saas/ui/button";
 import { Input } from "@saas/ui/input";
 import { Label } from "@saas/ui/label";
 import { useTranslations } from "next-intl";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -20,6 +20,7 @@ type FormValues = z.infer<typeof schema>;
 export function RegisterForm({ locale }: { locale: string }) {
   const t = useTranslations("auth");
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [serverError, setServerError] = useState<string | null>(null);
 
   const {
@@ -50,7 +51,12 @@ export function RegisterForm({ locale }: { locale: string }) {
       router.push(`/${locale}/login`);
       return;
     }
-    router.push(`/${locale}/app`);
+    // A theme selected on the public marketplace before registering
+    // (Phase B) survives the auth transition via this plain, non-
+    // sensitive query param -- the plan-selection page (Phase D)
+    // attaches it to the new user's checkout session server-side.
+    const themePresetId = searchParams.get("theme");
+    router.push(themePresetId ? `/${locale}/plans?theme=${themePresetId}` : `/${locale}/app`);
     router.refresh();
   }
 

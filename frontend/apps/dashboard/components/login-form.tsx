@@ -39,7 +39,16 @@ export function LoginForm({ locale }: { locale: string }) {
       setServerError(t("loginError"));
       return;
     }
-    const next = searchParams.get("next") ?? `/${locale}/app`;
+    // Same `?theme=` carry-through as register-form.tsx -- login is the
+    // other half of the approved "Register/Login" journey step, so a
+    // returning merchant who clicked "Use this theme" gets the same
+    // treatment as a brand-new one. `?next=` (set by middleware.ts for
+    // an unrelated protected-route redirect) still wins if present,
+    // since that reflects a page the user was actually trying to reach.
+    const themePresetId = searchParams.get("theme");
+    const next =
+      searchParams.get("next") ??
+      (themePresetId ? `/${locale}/plans?theme=${themePresetId}` : `/${locale}/app`);
     router.push(next);
     router.refresh();
   }

@@ -238,6 +238,109 @@ class UsageRecord(TenantOwnedModel):
         return f"{self.quota_key}: {self.used} ({self.period_start}..{self.period_end})"
 
 
+class SubscriptionCheckoutSession(BaseModel, TimeStampedModel):
+    """
+    Phase D ("product vision reset" -- paid-plan onboarding). Holds the
+    theme + plan a visitor picked BEFORE any Store exists, so the
+    choice survives a refresh, a logout/login, or a failed/retried
+    payment (Phase E). Deliberately NOT a `TenantOwnedModel`: there is
+    no store yet at this point in the journey, and this is scoped by
+    `user`, not by tenant -- same shape as `apps.accounts.PlatformUser`
+    itself (plain `BaseModel`, no RLS; ownership enforced at the view
+    layer via `.filter(user=request.user)`/`get_object_or_404(...,
+    user=...)`, not a database policy). `app_user` gets normal
+    SELECT/INSERT/UPDATE/DELETE on this table automatically
+    (apps/tenancy/privileges.py's blanket grant), same as every other
+    app_user-writable table in this project.
+
+    `theme_preset_id` is a bare UUIDField, NOT a real ForeignKey to
+    `apps.themes.models.ThemePreset` -- `apps.subscriptions` may not
+    import `apps.themes` at all (see pyproject.toml's "Layering:
+    subscriptions does not depend on catalog" contract, which lists
+    `apps.themes` among the forbidden modules). This mirrors the
+    EXACT existing precedent for the same cross-layer situation:
+    `apps.stores.services.create_store(theme_preset_id=...)` also
+    accepts it as an opaque value with no local validation, delegating
+    entirely to `apps.themes.services.resolve_theme_preset` at the
+    point that actually matters (real store provisioning, Phase G).
+    The same is true here: an invalid id simply won't resolve to
+    anything the frontend can render, and would be caught for real by
+    Phase G's `create_store` call later -- no separate validation
+    layer is invented here for a value nothing yet acts on.
+    """
+
+    class CheckoutStatus(models.TextChoices):
+        DRAFT = "draft", "Draft"
+        READY_FOR_PAYMENT = "ready_for_payment", "Ready for payment"
+        COMPLETED = "completed", "Completed"
+        ABANDONED = "abandoned", "Abandoned"
+        EXPIRED = "expired", "Expired"
+
+    class PaymentStatus(models.TextChoices):
+        NOT_STARTED = "not_started", "Not started"
+        PENDING = "pending", "Pending"
+        PAID = "paid", "Paid"
+        FAILED = "failed", "Failed"
+
+    class ProvisioningStatus(models.TextChoices):
+        NOT_STARTED = "not_started", "Not started"
+        PENDING = "pending", "Pending"
+        PROVISIONING = "provisioning", "Provisioning"
+        PROVISIONED = "provisioned", "Provisioned"
+        FAILED = "failed", "Failed"
+
+    user = models.ForeignKey(
+        "accounts.PlatformUser",
+        on_delete=models.CASCADE,
+        related_name="subscription_checkout_sessions",
+    )
+    theme_preset_id = models.UUIDField(null=True, blank=True)
+    plan_version = models.ForeignKey(
+        "subscriptions.PlanVersion",
+        null=True,
+        blank=True,
+        on_delete=models.PROTECT,
+        related_name="checkout_sessions",
+    )
+    checkout_status = models.CharField(
+        max_length=20, choices=CheckoutStatus.choices, default=CheckoutStatus.DRAFT
+    )
+    payment_status = models.CharField(
+        max_length=16, choices=PaymentStatus.choices, default=PaymentStatus.NOT_STARTED
+    )
+    provisioning_status = models.CharField(
+        max_length=16, choices=ProvisioningStatus.choices, default=ProvisioningStatus.NOT_STARTED
+    )
+    # Phase F/G fields -- unused (always null/blank) until those phases
+    # exist, modeled now so this table doesn't need a second migration
+    # the moment they land.
+    business_info_draft = models.JSONField(null=True, blank=True)
+    store_name_draft = models.CharField(max_length=255, blank=True, default="")
+    store_slug_draft = models.SlugField(max_length=255, blank=True, default="")
+    expires_at = models.DateTimeField(null=True, blank=True)
+    consumed_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        db_table = "subscriptions_subscriptioncheckoutsession"
+        constraints = [
+            # At most one ACTIVE (non-terminal) session per user -- a
+            # user picking a different theme/plan while they already
+            # have a draft updates that SAME row (apps.subscriptions.
+            # services.start_or_update_checkout_session), never creates
+            # a second one. Mirrors uniq_one_subscription_per_store's
+            # "no Store may exist with no deterministic state" spirit,
+            # applied one layer earlier in the journey.
+            models.UniqueConstraint(
+                fields=["user"],
+                condition=models.Q(checkout_status__in=["draft", "ready_for_payment"]),
+                name="uniq_active_checkout_session_per_user",
+            ),
+        ]
+
+    def __str__(self) -> str:  # pragma: no cover - trivial
+        return f"SubscriptionCheckoutSession({self.user_id}, {self.checkout_status})"
+
+
 class Invoice(TenantOwnedModel):
     """SaaS-billing document -- merchant -> platform money, strictly
     separate from `apps.payments` (storefront customer -> merchant money,

@@ -2859,6 +2859,137 @@ paths:
               schema:
                 $ref: '#/components/schemas/StorefrontProductDetail'
           description: ''
+  /api/v1/subscriptions/checkout-sessions/current:
+    get:
+      operationId: api_v1_subscriptions_checkout_sessions_current_retrieve
+      description: |-
+        Phase D: the authenticated user's own in-progress checkout
+        session, always resolved by `request.user` -- never a client-held
+        session id (see `SubscriptionCheckoutSession`'s own docstring on
+        why: the choice must survive a refresh or a fresh login exactly
+        the same way, which a client-stored id could not guarantee if it
+        were ever lost).
+
+        GET returns the current session or 404 if none exists yet (a
+        visitor who has picked neither a theme nor a plan). POST starts one
+        (or updates the theme on an existing one) -- the marketplace's
+        "Use this theme" flow. PATCH selects a plan on the existing session
+        -- server-validated against real Plan/PlanVersion data, per
+        `apps.subscriptions.services.select_plan_for_checkout_session`;
+        the request body is a plan_version_id ONLY, never a price.
+      tags:
+      - api
+      security:
+      - platformJwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SubscriptionCheckoutSession'
+          description: ''
+    post:
+      operationId: api_v1_subscriptions_checkout_sessions_current_create
+      description: |-
+        Phase D: the authenticated user's own in-progress checkout
+        session, always resolved by `request.user` -- never a client-held
+        session id (see `SubscriptionCheckoutSession`'s own docstring on
+        why: the choice must survive a refresh or a fresh login exactly
+        the same way, which a client-stored id could not guarantee if it
+        were ever lost).
+
+        GET returns the current session or 404 if none exists yet (a
+        visitor who has picked neither a theme nor a plan). POST starts one
+        (or updates the theme on an existing one) -- the marketplace's
+        "Use this theme" flow. PATCH selects a plan on the existing session
+        -- server-validated against real Plan/PlanVersion data, per
+        `apps.subscriptions.services.select_plan_for_checkout_session`;
+        the request body is a plan_version_id ONLY, never a price.
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StartSubscriptionCheckoutSessionRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/StartSubscriptionCheckoutSessionRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/StartSubscriptionCheckoutSessionRequest'
+      security:
+      - platformJwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SubscriptionCheckoutSession'
+          description: ''
+    patch:
+      operationId: api_v1_subscriptions_checkout_sessions_current_partial_update
+      description: |-
+        Phase D: the authenticated user's own in-progress checkout
+        session, always resolved by `request.user` -- never a client-held
+        session id (see `SubscriptionCheckoutSession`'s own docstring on
+        why: the choice must survive a refresh or a fresh login exactly
+        the same way, which a client-stored id could not guarantee if it
+        were ever lost).
+
+        GET returns the current session or 404 if none exists yet (a
+        visitor who has picked neither a theme nor a plan). POST starts one
+        (or updates the theme on an existing one) -- the marketplace's
+        "Use this theme" flow. PATCH selects a plan on the existing session
+        -- server-validated against real Plan/PlanVersion data, per
+        `apps.subscriptions.services.select_plan_for_checkout_session`;
+        the request body is a plan_version_id ONLY, never a price.
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedSelectPlanRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedSelectPlanRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedSelectPlanRequest'
+      security:
+      - platformJwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SubscriptionCheckoutSession'
+          description: ''
+  /api/v1/subscriptions/plans/public:
+    get:
+      operationId: api_v1_subscriptions_plans_public_list
+      description: |-
+        Phase D: the plan-selection screen's data source. Genuinely
+        unauthenticated (`AllowAny`), matching `apps.themes`'s public
+        theme-preset endpoints -- Plan/PlanVersion already carry an open
+        RLS SELECT policy for everyone (Phase 10, approved architecture
+        decision 1), so exposing the current public plans over HTTP adds
+        no new write surface and leaks nothing merchant-specific.
+      tags:
+      - api
+      security:
+      - platformJwtAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PublicPlanVersion'
+          description: ''
   /api/v1/themes/public/presets:
     get:
       operationId: api_v1_themes_public_presets_list
@@ -3186,6 +3317,20 @@ components:
           format: uuid
       required:
       - shipping_method_id
+    CheckoutStatusEnum:
+      enum:
+      - draft
+      - ready_for_payment
+      - completed
+      - abandoned
+      - expired
+      type: string
+      description: |-
+        * `draft` - Draft
+        * `ready_for_payment` - Ready for payment
+        * `completed` - Completed
+        * `abandoned` - Abandoned
+        * `expired` - Expired
     CreateProductRequest:
       type: object
       description: 'One-shot: Product + its default variant -- see apps/catalog/services.py:create_product.'
@@ -3415,6 +3560,12 @@ components:
       - id
       - number
       - total_amount
+    PatchedSelectPlanRequest:
+      type: object
+      properties:
+        plan_version_id:
+          type: string
+          format: uuid
     PatchedUpdateCartItemRequest:
       type: object
       properties:
@@ -3512,6 +3663,18 @@ components:
       - order_id
       - provider_key
       - state
+    PaymentStatusEnum:
+      enum:
+      - not_started
+      - pending
+      - paid
+      - failed
+      type: string
+      description: |-
+        * `not_started` - Not started
+        * `pending` - Pending
+        * `paid` - Paid
+        * `failed` - Failed
     Plan:
       type: object
       properties:
@@ -4067,6 +4230,69 @@ components:
         * `mock` - mock
         * `manual_cod` - manual_cod
         * `stripe` - stripe
+    ProvisioningStatusEnum:
+      enum:
+      - not_started
+      - pending
+      - provisioning
+      - provisioned
+      - failed
+      type: string
+      description: |-
+        * `not_started` - Not started
+        * `pending` - Pending
+        * `provisioning` - Provisioning
+        * `provisioned` - Provisioned
+        * `failed` - Failed
+    PublicPlanVersion:
+      type: object
+      description: |-
+        Phase D: the public/authenticated plan-selection screen's data
+        source. Real, dynamic PlanVersion data -- price/features/quotas
+        are read straight off the DB row the platform admin (via
+        `publish_plan_version`/a seed migration) actually published, never
+        a value the frontend invents. `features`/`quotas` are nested lists
+        (not a single JSON blob) so the frontend can render a real
+        checklist without guessing key meanings client-side.
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        plan_code:
+          type: string
+          readOnly: true
+        plan_name:
+          type: string
+          readOnly: true
+        price_monthly:
+          type: integer
+          readOnly: true
+        price_yearly:
+          type: integer
+          readOnly: true
+        currency:
+          type: string
+          readOnly: true
+        features:
+          type: array
+          items:
+            $ref: '#/components/schemas/PlanVersionFeature'
+          readOnly: true
+        quotas:
+          type: array
+          items:
+            $ref: '#/components/schemas/PlanVersionQuota'
+          readOnly: true
+      required:
+      - currency
+      - features
+      - id
+      - plan_code
+      - plan_name
+      - price_monthly
+      - price_yearly
+      - quotas
     PublicThemePreset:
       type: object
       description: |-
@@ -4355,6 +4581,13 @@ components:
           type: boolean
       required:
       - name
+    StartSubscriptionCheckoutSessionRequest:
+      type: object
+      properties:
+        theme_preset_id:
+          type: string
+          format: uuid
+          nullable: true
     Status206Enum:
       enum:
       - pending_payment
@@ -4894,6 +5127,59 @@ components:
       - status
       - store_id
       - trial_ends_at
+    SubscriptionCheckoutSession:
+      type: object
+      description: |-
+        Phase D. `plan_version` is nested (not just an id) so the
+        confirmation UI can show the actually-selected plan's real name/
+        price without a second request. `theme_preset_id` stays a bare id
+        (see models.py's docstring on why `apps.subscriptions` cannot
+        resolve it to a name/preview itself) -- the frontend already has
+        the full preset list from `GET /api/v1/themes/public/presets` and
+        matches it locally.
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        theme_preset_id:
+          type: string
+          format: uuid
+          readOnly: true
+          nullable: true
+        plan_version:
+          allOf:
+          - $ref: '#/components/schemas/PublicPlanVersion'
+          readOnly: true
+        checkout_status:
+          allOf:
+          - $ref: '#/components/schemas/CheckoutStatusEnum'
+          readOnly: true
+        payment_status:
+          allOf:
+          - $ref: '#/components/schemas/PaymentStatusEnum'
+          readOnly: true
+        provisioning_status:
+          allOf:
+          - $ref: '#/components/schemas/ProvisioningStatusEnum'
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - checkout_status
+      - created_at
+      - id
+      - payment_status
+      - plan_version
+      - provisioning_status
+      - theme_preset_id
+      - updated_at
     SubscriptionStatus:
       type: object
       description: |-

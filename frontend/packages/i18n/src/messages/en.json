@@ -43,6 +43,27 @@
       "copyright": "© {year} Multi-Tenant SaaS"
     }
   },
+  "plans": {
+    "selectedThemeLabel": "Your selected theme",
+    "themeLoading": "Loading…",
+    "changeTheme": "Change theme",
+    "noThemeTitle": "Choose a theme first",
+    "noThemeBody": "Pick a store design from the marketplace before choosing a plan.",
+    "browseThemes": "Browse themes",
+    "title": "Choose your plan",
+    "subtitle": "Pick the plan that fits your business — you're not creating your store yet.",
+    "selected": "Selected",
+    "selectPlan": "Select this plan",
+    "perMonth": "/ month",
+    "unlimitedProducts": "Unlimited products",
+    "productsLimit": "Up to {count} products",
+    "feature": {
+      "api_access": "API access",
+      "custom_domain": "Custom domain"
+    },
+    "continueToPayment": "Continue to payment",
+    "comingSoon": "Your plan is saved. Subscription checkout is coming in the next update — no store has been created yet."
+  },
   "themesMarketplace": {
     "title": "Choose your store design",
     "subtitle": "Browse real, ready-made storefront designs. Preview any of them before you commit to one.",

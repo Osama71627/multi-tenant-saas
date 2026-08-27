@@ -2052,6 +2052,94 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/subscriptions/checkout-sessions/current": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * @description Phase D: the authenticated user's own in-progress checkout
+         *     session, always resolved by `request.user` -- never a client-held
+         *     session id (see `SubscriptionCheckoutSession`'s own docstring on
+         *     why: the choice must survive a refresh or a fresh login exactly
+         *     the same way, which a client-stored id could not guarantee if it
+         *     were ever lost).
+         *
+         *     GET returns the current session or 404 if none exists yet (a
+         *     visitor who has picked neither a theme nor a plan). POST starts one
+         *     (or updates the theme on an existing one) -- the marketplace's
+         *     "Use this theme" flow. PATCH selects a plan on the existing session
+         *     -- server-validated against real Plan/PlanVersion data, per
+         *     `apps.subscriptions.services.select_plan_for_checkout_session`;
+         *     the request body is a plan_version_id ONLY, never a price.
+         */
+        get: operations["api_v1_subscriptions_checkout_sessions_current_retrieve"];
+        put?: never;
+        /**
+         * @description Phase D: the authenticated user's own in-progress checkout
+         *     session, always resolved by `request.user` -- never a client-held
+         *     session id (see `SubscriptionCheckoutSession`'s own docstring on
+         *     why: the choice must survive a refresh or a fresh login exactly
+         *     the same way, which a client-stored id could not guarantee if it
+         *     were ever lost).
+         *
+         *     GET returns the current session or 404 if none exists yet (a
+         *     visitor who has picked neither a theme nor a plan). POST starts one
+         *     (or updates the theme on an existing one) -- the marketplace's
+         *     "Use this theme" flow. PATCH selects a plan on the existing session
+         *     -- server-validated against real Plan/PlanVersion data, per
+         *     `apps.subscriptions.services.select_plan_for_checkout_session`;
+         *     the request body is a plan_version_id ONLY, never a price.
+         */
+        post: operations["api_v1_subscriptions_checkout_sessions_current_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * @description Phase D: the authenticated user's own in-progress checkout
+         *     session, always resolved by `request.user` -- never a client-held
+         *     session id (see `SubscriptionCheckoutSession`'s own docstring on
+         *     why: the choice must survive a refresh or a fresh login exactly
+         *     the same way, which a client-stored id could not guarantee if it
+         *     were ever lost).
+         *
+         *     GET returns the current session or 404 if none exists yet (a
+         *     visitor who has picked neither a theme nor a plan). POST starts one
+         *     (or updates the theme on an existing one) -- the marketplace's
+         *     "Use this theme" flow. PATCH selects a plan on the existing session
+         *     -- server-validated against real Plan/PlanVersion data, per
+         *     `apps.subscriptions.services.select_plan_for_checkout_session`;
+         *     the request body is a plan_version_id ONLY, never a price.
+         */
+        patch: operations["api_v1_subscriptions_checkout_sessions_current_partial_update"];
+        trace?: never;
+    };
+    "/api/v1/subscriptions/plans/public": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * @description Phase D: the plan-selection screen's data source. Genuinely
+         *     unauthenticated (`AllowAny`), matching `apps.themes`'s public
+         *     theme-preset endpoints -- Plan/PlanVersion already carry an open
+         *     RLS SELECT policy for everyone (Phase 10, approved architecture
+         *     decision 1), so exposing the current public plans over HTTP adds
+         *     no new write surface and leaks nothing merchant-specific.
+         */
+        get: operations["api_v1_subscriptions_plans_public_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/themes/public/presets": {
         parameters: {
             query?: never;
@@ -2227,6 +2315,15 @@ export interface components {
             /** Format: uuid */
             shipping_method_id: string;
         };
+        /**
+         * @description * `draft` - Draft
+         *     * `ready_for_payment` - Ready for payment
+         *     * `completed` - Completed
+         *     * `abandoned` - Abandoned
+         *     * `expired` - Expired
+         * @enum {string}
+         */
+        CheckoutStatusEnum: "draft" | "ready_for_payment" | "completed" | "abandoned" | "expired";
         /** @description One-shot: Product + its default variant -- see apps/catalog/services.py:create_product. */
         CreateProductRequest: {
             name: string;
@@ -2313,6 +2410,10 @@ export interface components {
             /** Format: date-time */
             readonly created_at: string;
         };
+        PatchedSelectPlanRequest: {
+            /** Format: uuid */
+            plan_version_id?: string;
+        };
         PatchedUpdateCartItemRequest: {
             quantity?: number;
         };
@@ -2360,6 +2461,14 @@ export interface components {
             currency: string;
             provider_key: string;
         };
+        /**
+         * @description * `not_started` - Not started
+         *     * `pending` - Pending
+         *     * `paid` - Paid
+         *     * `failed` - Failed
+         * @enum {string}
+         */
+        PaymentStatusEnum: "not_started" | "pending" | "paid" | "failed";
         Plan: {
             /** Format: uuid */
             readonly id: string;
@@ -2557,6 +2666,35 @@ export interface components {
          */
         ProviderKeyEnum: "mock" | "manual_cod" | "stripe";
         /**
+         * @description * `not_started` - Not started
+         *     * `pending` - Pending
+         *     * `provisioning` - Provisioning
+         *     * `provisioned` - Provisioned
+         *     * `failed` - Failed
+         * @enum {string}
+         */
+        ProvisioningStatusEnum: "not_started" | "pending" | "provisioning" | "provisioned" | "failed";
+        /**
+         * @description Phase D: the public/authenticated plan-selection screen's data
+         *     source. Real, dynamic PlanVersion data -- price/features/quotas
+         *     are read straight off the DB row the platform admin (via
+         *     `publish_plan_version`/a seed migration) actually published, never
+         *     a value the frontend invents. `features`/`quotas` are nested lists
+         *     (not a single JSON blob) so the frontend can render a real
+         *     checklist without guessing key meanings client-side.
+         */
+        PublicPlanVersion: {
+            /** Format: uuid */
+            readonly id: string;
+            readonly plan_code: string;
+            readonly plan_name: string;
+            readonly price_monthly: number;
+            readonly price_yearly: number;
+            readonly currency: string;
+            readonly features: components["schemas"]["PlanVersionFeature"][];
+            readonly quotas: components["schemas"]["PlanVersionQuota"][];
+        };
+        /**
          * @description The public marketplace's card shape -- adds `theme_name`/
          *     `theme_category` (never needed by the authenticated onboarding
          *     picker, which already knows which theme it's showing) on top of
@@ -2658,6 +2796,10 @@ export interface components {
             postal_patterns?: string[];
             priority?: number;
             is_active?: boolean;
+        };
+        StartSubscriptionCheckoutSessionRequest: {
+            /** Format: uuid */
+            theme_preset_id?: string | null;
         };
         /**
          * @description * `pending_payment` - Pending payment
@@ -2881,6 +3023,29 @@ export interface components {
             readonly cancel_at: string | null;
             /** Format: date-time */
             readonly created_at: string;
+        };
+        /**
+         * @description Phase D. `plan_version` is nested (not just an id) so the
+         *     confirmation UI can show the actually-selected plan's real name/
+         *     price without a second request. `theme_preset_id` stays a bare id
+         *     (see models.py's docstring on why `apps.subscriptions` cannot
+         *     resolve it to a name/preview itself) -- the frontend already has
+         *     the full preset list from `GET /api/v1/themes/public/presets` and
+         *     matches it locally.
+         */
+        SubscriptionCheckoutSession: {
+            /** Format: uuid */
+            readonly id: string;
+            /** Format: uuid */
+            readonly theme_preset_id: string | null;
+            readonly plan_version: components["schemas"]["PublicPlanVersion"];
+            readonly checkout_status: components["schemas"]["CheckoutStatusEnum"];
+            readonly payment_status: components["schemas"]["PaymentStatusEnum"];
+            readonly provisioning_status: components["schemas"]["ProvisioningStatusEnum"];
+            /** Format: date-time */
+            readonly created_at: string;
+            /** Format: date-time */
+            readonly updated_at: string;
         };
         /**
          * @description Phase 12 (dashboard subscription-status UI). Read-only -- writes
@@ -5060,6 +5225,94 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["StorefrontProductDetail"];
+                };
+            };
+        };
+    };
+    api_v1_subscriptions_checkout_sessions_current_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SubscriptionCheckoutSession"];
+                };
+            };
+        };
+    };
+    api_v1_subscriptions_checkout_sessions_current_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["StartSubscriptionCheckoutSessionRequest"];
+                "application/x-www-form-urlencoded": components["schemas"]["StartSubscriptionCheckoutSessionRequest"];
+                "multipart/form-data": components["schemas"]["StartSubscriptionCheckoutSessionRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SubscriptionCheckoutSession"];
+                };
+            };
+        };
+    };
+    api_v1_subscriptions_checkout_sessions_current_partial_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["PatchedSelectPlanRequest"];
+                "application/x-www-form-urlencoded": components["schemas"]["PatchedSelectPlanRequest"];
+                "multipart/form-data": components["schemas"]["PatchedSelectPlanRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SubscriptionCheckoutSession"];
+                };
+            };
+        };
+    };
+    api_v1_subscriptions_plans_public_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublicPlanVersion"][];
                 };
             };
         };

@@ -37,10 +37,18 @@ from __future__ import annotations
 
 from datetime import timedelta
 
+from django.db import transaction
 from django.utils import timezone
 
+from apps.accounts.models import PlatformUser
 from apps.stores.models import Store
-from apps.subscriptions.models import Invoice, Plan, PlanVersion, Subscription
+from apps.subscriptions.models import (
+    Invoice,
+    Plan,
+    PlanVersion,
+    Subscription,
+    SubscriptionCheckoutSession,
+)
 
 
 class NoDefaultTrialPlanError(Exception):
@@ -172,3 +180,105 @@ def mark_invoice_paid(*, invoice: Invoice) -> Invoice:
     invoice.paid_at = timezone.now()
     invoice.save(update_fields=["status", "paid_at", "updated_at"])
     return invoice
+
+
+# --------------------------------------------------------------------------
+# Phase D ("product vision reset" -- Plan Selection). SubscriptionCheckoutSession
+# IS a normal app_user-writable table (not Plan/PlanVersion), so unlike
+# everything above this comment, these functions are real runtime service
+# code, callable from views -- see models.py's own docstring on why this
+# table has no RLS/tenant-scoping (user-scoped, not store-scoped; there is
+# no Store yet at this point in the journey).
+# --------------------------------------------------------------------------
+
+
+class PlanVersionNotAvailableError(Exception):
+    """The requested PlanVersion doesn't exist, isn't its Plan's current
+    version, or belongs to a non-public Plan -- a real client error
+    (the merchant selected something no longer/never offered), not a
+    deployment gap. Price/availability is ALWAYS re-derived from this
+    check server-side; a client-supplied price is never trusted (the
+    request only ever carries a `plan_version_id`, never an amount)."""
+
+
+class NoActiveCheckoutSessionError(Exception):
+    """Raised when an operation needs an existing draft/ready_for_payment
+    session for this user and none exists -- e.g. selecting a plan
+    before ever starting a checkout session at all."""
+
+
+_ACTIVE_CHECKOUT_STATUSES = (
+    SubscriptionCheckoutSession.CheckoutStatus.DRAFT,
+    SubscriptionCheckoutSession.CheckoutStatus.READY_FOR_PAYMENT,
+)
+
+
+def get_active_checkout_session(*, user: PlatformUser) -> SubscriptionCheckoutSession | None:
+    """The one non-terminal (draft/ready_for_payment) session for this
+    user, if any -- looked up purely by `user`, never by a client-held
+    session id, so it survives a refresh or a fresh login exactly the
+    same way (Phase D requirement: the choice must not depend on any
+    client-side state surviving)."""
+    return SubscriptionCheckoutSession.objects.filter(
+        user=user, checkout_status__in=_ACTIVE_CHECKOUT_STATUSES
+    ).first()
+
+
+def start_or_update_checkout_session(
+    *, user: PlatformUser, theme_preset_id=None
+) -> SubscriptionCheckoutSession:
+    """Upsert, not create-only: a user re-visiting the marketplace and
+    picking a DIFFERENT theme updates their existing active session
+    rather than accumulating a second one (enforced at the DB level too
+    -- `uniq_active_checkout_session_per_user`). Picking a plan later
+    does not require having passed a theme here; `theme_preset_id` is
+    optional so a session can exist (e.g. mid plan-selection) with no
+    theme attached yet if a caller ever reaches this without one."""
+    with transaction.atomic():
+        session = (
+            SubscriptionCheckoutSession.objects.select_for_update()
+            .filter(user=user, checkout_status__in=_ACTIVE_CHECKOUT_STATUSES)
+            .first()
+        )
+        if session is None:
+            session = SubscriptionCheckoutSession.objects.create(
+                user=user, theme_preset_id=theme_preset_id
+            )
+        elif theme_preset_id is not None and session.theme_preset_id != theme_preset_id:
+            session.theme_preset_id = theme_preset_id
+            session.save(update_fields=["theme_preset_id", "updated_at"])
+        return session
+
+
+def select_plan_for_checkout_session(
+    *, user: PlatformUser, plan_version_id
+) -> SubscriptionCheckoutSession:
+    """Validates the plan server-side (real availability + real price,
+    from `PlanVersion`/`Plan` -- never from anything the client sent)
+    before attaching it to the user's active session. Raises rather
+    than silently ignoring an invalid/unavailable plan_version_id, so
+    the view can surface a real 4xx instead of pretending it worked."""
+    try:
+        plan_version = PlanVersion.objects.select_related("plan").get(
+            id=plan_version_id, is_current=True, plan__is_public=True
+        )
+    except PlanVersion.DoesNotExist as exc:
+        raise PlanVersionNotAvailableError(
+            f"PlanVersion {plan_version_id!r} is not a current, public plan."
+        ) from exc
+
+    with transaction.atomic():
+        session = (
+            SubscriptionCheckoutSession.objects.select_for_update()
+            .filter(user=user, checkout_status__in=_ACTIVE_CHECKOUT_STATUSES)
+            .first()
+        )
+        if session is None:
+            raise NoActiveCheckoutSessionError(
+                "No active checkout session for this user -- start one "
+                "(e.g. by selecting a theme) before selecting a plan."
+            )
+        session.plan_version = plan_version
+        session.checkout_status = SubscriptionCheckoutSession.CheckoutStatus.READY_FOR_PAYMENT
+        session.save(update_fields=["plan_version", "checkout_status", "updated_at"])
+        return session
