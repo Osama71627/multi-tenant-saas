@@ -47,3 +47,9 @@ Thumbs.db
 
 # Docker
 *.pid
+
+# Phase 19 staging: Caddy's internal CA is generated fresh per machine/volume
+# (infra/caddy/trust-local-ca.ps1, runbooks/trust-local-ca.md) -- exporting
+# it is a public cert, not a secret, but committing one specific instance
+# would be stale/wrong for any other machine's own Caddy volume.
+infra/caddy/caddy-local-root-ca.crt
