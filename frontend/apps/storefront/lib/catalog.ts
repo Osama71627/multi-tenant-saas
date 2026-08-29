@@ -6,13 +6,19 @@ export type StorefrontProductListItem = components["schemas"]["StorefrontProduct
 export type StorefrontProductDetail = components["schemas"]["StorefrontProductDetail"];
 export type StorefrontCategory = components["schemas"]["StorefrontCategory"];
 
+export type StorefrontSort = "name" | "newest" | "price_asc" | "price_desc";
+
 export async function getProducts(
   hostname: string,
-  categorySlug?: string
+  categorySlug?: string,
+  sort?: StorefrontSort
 ): Promise<StorefrontProductListItem[]> {
   const api = serverStorefrontApi(hostname);
+  const query: Record<string, string> = {};
+  if (categorySlug) query.category = categorySlug;
+  if (sort) query.sort = sort;
   const { data, error } = await api.GET("/api/v1/storefront/products", {
-    params: { query: categorySlug ? { category: categorySlug } : undefined },
+    params: { query: Object.keys(query).length ? query : undefined },
   });
   if (error || !data) return [];
   return data;

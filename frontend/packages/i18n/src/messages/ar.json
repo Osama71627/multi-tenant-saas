@@ -277,6 +277,8 @@
       "cart": "السلة"
     },
     "home": {
+      "newCollection": "تشكيلة جديدة",
+      "shopNow": "تسوّق الآن",
       "featuredProducts": "منتجات مميزة",
       "categories": "تسوّق حسب الفئة",
       "newsletterTitle": "ابقَ على اطلاع",
@@ -290,10 +292,22 @@
       "outOfStock": "غير متوفر",
       "inStock": "متوفر",
       "quantity": "الكمية",
+      "decreaseQuantity": "إنقاص الكمية",
+      "increaseQuantity": "زيادة الكمية",
       "description": "الوصف",
       "noProducts": "لا توجد منتجات بعد",
       "noProductsDescription": "لم يُضِف هذا المتجر أي منتجات بعد.",
-      "notFound": "المنتج غير موجود"
+      "notFound": "المنتج غير موجود",
+      "allProducts": "كل المنتجات",
+      "allCategories": "الكل",
+      "productCount": "{count} منتج"
+    },
+    "sort": {
+      "label": "الترتيب:",
+      "name": "الاسم",
+      "newest": "الأحدث",
+      "price_asc": "السعر: من الأقل للأعلى",
+      "price_desc": "السعر: من الأعلى للأقل"
     },
     "cart": {
       "title": "سلتك",
@@ -305,7 +319,9 @@
       "remove": "إزالة",
       "item": "المنتج",
       "price": "السعر",
-      "updateError": "تعذّر تحديث هذا العنصر."
+      "updateError": "تعذّر تحديث هذا العنصر.",
+      "decreaseQuantity": "إنقاص الكمية",
+      "increaseQuantity": "زيادة الكمية"
     },
     "checkout": {
       "title": "إتمام الشراء",

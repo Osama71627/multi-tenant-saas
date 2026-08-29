@@ -2,8 +2,7 @@
 
 import { Badge } from "@saas/ui/badge";
 import { Button } from "@saas/ui/button";
-import { Select } from "@saas/ui/select";
-import { Check } from "lucide-react";
+import { Check, Minus, Plus } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useEffect, useMemo, useState } from "react";
 
@@ -21,6 +20,20 @@ function variantMatchesSelection(
   );
 }
 
+/**
+ * Real gap found live: this used to be a single narrow column (image-
+ * less, no visual weight at all) even on a wide desktop viewport, with
+ * a bare `<select>` for options and another `<select>` just for
+ * quantity. Redesigned around a real two-column layout (image left,
+ * details right, on `sm:` and up) matching every real e-commerce PDP
+ * convention, swatch-style option buttons instead of a dropdown
+ * (nothing is hidden behind a click to see what's even available), and
+ * a proper quantity stepper. No product-photography pipeline exists in
+ * this project (same honest constraint documented on
+ * @saas/theme-fashion's FashionProductCard) -- the image slot is a
+ * considered gradient placeholder using the store's own theme colours,
+ * not a broken-looking gray box.
+ */
 export function ProductDetail({ product }: { product: StorefrontProductDetail }) {
   const t = useTranslations("storefront.product");
   const options = product.options;
@@ -58,84 +71,140 @@ export function ProductDetail({ product }: { product: StorefrontProductDetail })
     return () => clearTimeout(timeout);
   }, [justAdded]);
 
+  const onSale =
+    selectedVariant?.compare_at_price_amount != null &&
+    selectedVariant.compare_at_price_amount > selectedVariant.price_amount;
+
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold">{product.name}</h1>
-        {selectedVariant ? (
-          <p className="mt-2 text-xl font-semibold" style={{ color: "var(--sf-primary)" }}>
-            {formatMoney(selectedVariant.price_amount, selectedVariant.currency)}
-          </p>
-        ) : null}
+    <div className="grid gap-10 sm:grid-cols-2">
+      <div
+        className="relative flex aspect-square items-center justify-center overflow-hidden rounded-lg"
+        style={{
+          background:
+            "linear-gradient(160deg, color-mix(in srgb, var(--sf-secondary, #ccc) 18%, white), color-mix(in srgb, var(--sf-accent, #999) 22%, white))",
+        }}
+      >
+        <span
+          className="text-8xl font-bold opacity-20"
+          style={{ color: "var(--sf-primary)" }}
+          aria-hidden
+        >
+          {product.name.charAt(0).toUpperCase()}
+        </span>
       </div>
 
-      {options.map((option) => (
-        <div key={option.id} className="space-y-1.5">
-          <label className="text-sm font-medium">{option.name}</label>
-          <Select
-            value={selection[option.name] ?? ""}
-            onChange={(e) => setSelection((prev) => ({ ...prev, [option.name]: e.target.value }))}
-          >
-            {option.values.map((value) => (
-              <option key={value.id} value={value.value}>
-                {value.value}
-              </option>
-            ))}
-          </Select>
-        </div>
-      ))}
-
-      <div>
-        <Badge variant={inStock ? "success" : "secondary"}>
-          {inStock ? t("inStock") : t("outOfStock")}
-        </Badge>
-      </div>
-
-      {product.description ? (
+      <div className="space-y-6">
         <div>
-          <h2 className="text-sm font-medium text-gray-700">{t("description")}</h2>
-          <p className="mt-1 whitespace-pre-line text-sm text-gray-600">{product.description}</p>
+          <h1 className="text-2xl font-semibold">{product.name}</h1>
+          {selectedVariant ? (
+            <p className="mt-2 flex items-center gap-2 text-xl font-semibold">
+              <span style={{ color: "var(--sf-primary)" }}>
+                {formatMoney(selectedVariant.price_amount, selectedVariant.currency)}
+              </span>
+              {onSale && selectedVariant.compare_at_price_amount != null ? (
+                <span className="text-base font-normal text-gray-400 line-through">
+                  {formatMoney(selectedVariant.compare_at_price_amount, selectedVariant.currency)}
+                </span>
+              ) : null}
+            </p>
+          ) : null}
+          <div className="mt-3">
+            <Badge variant={inStock ? "success" : "secondary"}>
+              {inStock ? t("inStock") : t("outOfStock")}
+            </Badge>
+          </div>
         </div>
-      ) : null}
 
-      <div className="flex items-center gap-3">
-        <Select
-          className="w-20"
-          value={String(quantity)}
-          disabled={!inStock}
-          onChange={(e) => setQuantity(Number(e.target.value))}
-        >
-          {Array.from({ length: maxQuantity }, (_, i) => i + 1).map((n) => (
-            <option key={n} value={n}>
-              {n}
-            </option>
-          ))}
-        </Select>
-        <Button
-          disabled={!selectedVariant || !inStock || addToCart.isPending}
-          onClick={() => {
-            if (!selectedVariant) return;
-            addToCart.mutate(
-              { variant: selectedVariant.id, quantity },
-              { onSuccess: () => setJustAdded(true) }
-            );
-          }}
-          style={{ backgroundColor: "var(--sf-primary)" }}
-        >
-          {addToCart.isPending ? t("adding") : t("addToCart")}
-        </Button>
-        {justAdded ? (
-          <span className="flex items-center gap-1 text-sm font-medium text-emerald-600">
-            <Check className="h-4 w-4" />
-            {t("added")}
-          </span>
+        {options.map((option) => (
+          <div key={option.id} className="space-y-2">
+            <p className="text-sm font-medium">{option.name}</p>
+            <div className="flex flex-wrap gap-2">
+              {option.values.map((value) => {
+                const isSelected = selection[option.name] === value.value;
+                return (
+                  <button
+                    key={value.id}
+                    type="button"
+                    onClick={() =>
+                      setSelection((prev) => ({ ...prev, [option.name]: value.value }))
+                    }
+                    className="rounded-md border px-4 py-2 text-sm font-medium transition-colors"
+                    style={
+                      isSelected
+                        ? {
+                            borderColor: "var(--sf-primary)",
+                            backgroundColor: "var(--sf-primary)",
+                            color: "white",
+                          }
+                        : { borderColor: "#e5e7eb" }
+                    }
+                  >
+                    {value.value}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        ))}
+
+        {product.description ? (
+          <div>
+            <h2 className="text-sm font-medium text-gray-700">{t("description")}</h2>
+            <p className="mt-1 whitespace-pre-line text-sm text-gray-600">{product.description}</p>
+          </div>
         ) : null}
+
+        <div className="space-y-3 border-t pt-6">
+          <div className="flex items-center gap-4">
+            <div className="flex items-center rounded-md border">
+              <button
+                type="button"
+                aria-label={t("decreaseQuantity")}
+                disabled={!inStock || quantity <= 1}
+                onClick={() => setQuantity((q) => Math.max(1, q - 1))}
+                className="p-2.5 text-gray-600 hover:text-black disabled:opacity-30"
+              >
+                <Minus className="h-3.5 w-3.5" />
+              </button>
+              <span className="w-8 text-center text-sm font-medium">{quantity}</span>
+              <button
+                type="button"
+                aria-label={t("increaseQuantity")}
+                disabled={!inStock || quantity >= maxQuantity}
+                onClick={() => setQuantity((q) => Math.min(maxQuantity, q + 1))}
+                className="p-2.5 text-gray-600 hover:text-black disabled:opacity-30"
+              >
+                <Plus className="h-3.5 w-3.5" />
+              </button>
+            </div>
+            <Button
+              className="flex-1"
+              disabled={!selectedVariant || !inStock || addToCart.isPending}
+              onClick={() => {
+                if (!selectedVariant) return;
+                addToCart.mutate(
+                  { variant: selectedVariant.id, quantity },
+                  { onSuccess: () => setJustAdded(true) }
+                );
+              }}
+              style={{ backgroundColor: "var(--sf-primary)" }}
+            >
+              {addToCart.isPending ? t("adding") : t("addToCart")}
+            </Button>
+          </div>
+          {justAdded ? (
+            <span className="flex items-center gap-1 text-sm font-medium text-emerald-600">
+              <Check className="h-4 w-4" />
+              {t("added")}
+            </span>
+          ) : null}
+          {addToCart.isError ? (
+            <p className="text-sm text-red-600">
+              {(addToCart.error as { detail?: string })?.detail ?? "Could not add to cart."}
+            </p>
+          ) : null}
+        </div>
       </div>
-      {addToCart.isError ? (
-        <p className="text-sm text-red-600">
-          {(addToCart.error as { detail?: string })?.detail ?? "Could not add to cart."}
-        </p>
-      ) : null}
     </div>
   );
 }

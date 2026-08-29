@@ -76,11 +76,42 @@ class StorefrontStoreSerializer(serializers.Serializer):
     -- only the public-safe subset a shopper may see, assembled by the
     view from `request.tenant_store`. Never the full dashboard
     `StoreDetailSerializer` shape (that includes `contact_email`/
-    `contact_phone`, merchant-only)."""
+    `contact_phone`, merchant-only). `logo` IS public -- a shopper is
+    supposed to see the store's own branding in the header/footer, same
+    "public-safe" reasoning that already applies to `name`; real gap
+    found live: every storefront theme's header/footer only ever had
+    the store NAME to render (plain text wordmark), even for a store
+    with a real logo uploaded -- same underlying serializer gap already
+    fixed for the dashboard's own StoreListItemSerializer/
+    StoreDetailSerializer (apps.stores.serializers)."""
 
     id = serializers.UUIDField()
     name = serializers.CharField()
     default_currency = serializers.CharField()
+    logo = serializers.SerializerMethodField()
+
+    def get_logo(self, obj: dict) -> str | None:
+        logo = obj.get("logo")
+        if not logo:
+            return None
+        # Deliberately relative (`/media/...`), NOT `request.
+        # build_absolute_uri()` (unlike the dashboard's own StoreListItem/
+        # StoreDetail `get_logo`, apps.stores.serializers) -- real bug
+        # found live: the storefront's frontend/Django hop crosses TWO
+        # different ports in local dev (Next on 4000, Django on 8000),
+        # both reached through the SAME tenant hostname. `build_absolute_uri`
+        # has only `X-Forwarded-Host` to go on, which is deliberately the
+        # bare tenant hostname (needed for RLS/tenant resolution) -- it
+        # cannot also know "and reach Django on port 8000, not whichever
+        # port issued this request", so it silently built a URL pointing
+        # at the STOREFRONT'S OWN port. The frontend already solves this
+        # exact problem for its own API calls (lib/backend.ts's
+        # `browserBackendOrigin()`, `NEXT_PUBLIC_BACKEND_PORT`) -- a
+        # relative path here lets `getStorefrontContext()` apply that
+        # same, already-correct origin construction to the logo too,
+        # instead of this serializer guessing at a URL it cannot get
+        # right from inside one request/response cycle.
+        return logo.url
 
 
 class StorefrontContextSerializer(serializers.Serializer):

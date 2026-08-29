@@ -11,6 +11,7 @@ import { serverFetch } from "@/lib/session";
 
 interface StoreDetail {
   name: string;
+  logo: string | null;
 }
 
 interface StoreThemeConfig {
@@ -44,7 +45,13 @@ export default async function StorePreviewPage({
   const settings = themeConfig.settings;
 
   const homeSectionRenderers: Record<string, React.ReactNode> = {
-    hero: <theme.Hero headline={settings.hero_headline} subheadline={settings.hero_subheadline} />,
+    hero: (
+      <theme.Hero
+        headline={settings.hero_headline}
+        subheadline={settings.hero_subheadline}
+        shopHref="#"
+      />
+    ),
     featured_products: (
       <theme.FeaturedProducts
         products={FIXTURE_PRODUCTS}
@@ -142,6 +149,7 @@ export default async function StorePreviewPage({
       >
         <theme.Header
           storeName={store.name}
+          logoUrl={store.logo}
           navOrder={settings.nav_order}
           locale={locale}
           homeHref="#"
@@ -153,7 +161,13 @@ export default async function StorePreviewPage({
           product={productPanel}
           cart={cartPanel}
         />
-        <theme.Footer storeName={store.name} />
+        <theme.Footer
+          storeName={store.name}
+          logoUrl={store.logo}
+          navOrder={settings.nav_order}
+          locale={locale}
+          disableNav
+        />
       </div>
     </div>
   );

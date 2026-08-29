@@ -14,10 +14,20 @@
  * nonces/hashes apply only to `<style>` ELEMENTS, never to a `style=""`
  * ATTRIBUTE (a spec limitation, not a Next.js one).
  *
- * `connectSrc` is a parameter here, unlike dashboard/platform-admin's
+ * `backendOrigin` is a parameter here, unlike dashboard/platform-admin's
  * fixed `'self'`: this app's browser client calls Django directly
  * (`lib/backend.ts`'s `browserBackendOrigin()`), a genuinely different
  * origin in dev (`:8000` vs this app's own port) -- see middleware.ts.
+ * The SAME origin is also allowed in `img-src` for the identical
+ * reason: a store's uploaded logo (Store.logo, Phase F) is served by
+ * Django directly, not proxied through this app -- real bug found
+ * live, `img-src`'s original `'self' data:'` (Phase 17, before any
+ * theme rendered a real image at all) silently blocked every logo
+ * `<img>` in every theme's header/footer, discovered only by reading
+ * the browser's own console (an `<img>` failing CSP fails silent-ish:
+ * no network request, no visible error in the element itself, just a
+ * broken image -- `naturalWidth: 0` alone doesn't distinguish this
+ * from a genuine 404).
  *
  * `style-src-elem`'s hash allowlist has one entry: `react-remove-scroll`
  * (a transitive dependency of `@radix-ui/react-select`, used by
@@ -36,7 +46,7 @@ export function generateNonce(): string {
 
 const REACT_REMOVE_SCROLL_STYLE_HASH = "'sha256-nzTgYzXYDNe6BAHiiI7NNlfK8n/auuOAhh2t92YvuXo='";
 
-export function buildCsp(nonce: string, connectSrc: string): string {
+export function buildCsp(nonce: string, backendOrigin: string): string {
   return [
     "default-src 'self'",
     "object-src 'none'",
@@ -46,8 +56,8 @@ export function buildCsp(nonce: string, connectSrc: string): string {
     `script-src 'self' 'nonce-${nonce}' 'strict-dynamic'`,
     `style-src-elem 'self' ${REACT_REMOVE_SCROLL_STYLE_HASH}`,
     "style-src-attr 'unsafe-inline'",
-    "img-src 'self' data:",
+    `img-src 'self' data: ${backendOrigin}`,
     "font-src 'self'",
-    `connect-src 'self' ${connectSrc}`,
+    `connect-src 'self' ${backendOrigin}`,
   ].join("; ");
 }

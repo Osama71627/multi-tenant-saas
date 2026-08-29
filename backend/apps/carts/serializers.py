@@ -7,11 +7,35 @@ from apps.carts.models import Cart, CartItem
 
 class CartItemSerializer(serializers.ModelSerializer):
     variant_sku = serializers.CharField(source="variant.sku", read_only=True)
+    # Real gap found live: the cart page only had `variant_sku` to show a
+    # shopper what's in their cart -- a raw SKU string, never the actual
+    # product name a shopper recognizes. Same `source="variant.X"` chain
+    # pattern `variant_sku` already uses (this view's cart is a plain
+    # fetched instance, not a queryset -- no select_related to add here
+    # any more than the existing field already needed).
+    product_name = serializers.CharField(source="variant.product.name", read_only=True)
+    product_slug = serializers.CharField(source="variant.product.slug", read_only=True)
 
     class Meta:
         model = CartItem
-        fields = ["id", "variant", "variant_sku", "quantity", "unit_price_amount", "currency"]
-        read_only_fields = ["id", "variant_sku", "unit_price_amount", "currency"]
+        fields = [
+            "id",
+            "variant",
+            "variant_sku",
+            "product_name",
+            "product_slug",
+            "quantity",
+            "unit_price_amount",
+            "currency",
+        ]
+        read_only_fields = [
+            "id",
+            "variant_sku",
+            "product_name",
+            "product_slug",
+            "unit_price_amount",
+            "currency",
+        ]
 
 
 class CartSerializer(serializers.ModelSerializer):

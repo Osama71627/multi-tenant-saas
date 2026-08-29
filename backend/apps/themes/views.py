@@ -117,8 +117,10 @@ class StorefrontContextView(StorefrontAPIView):
                         "id": self.store.id,
                         "name": self.store.name,
                         "default_currency": self.store.default_currency,
+                        "logo": self.store.logo,
                     },
                     "theme": config,
-                }
+                },
+                context={"request": request},
             ).data
         )

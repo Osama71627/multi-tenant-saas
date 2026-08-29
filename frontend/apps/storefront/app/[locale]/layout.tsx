@@ -48,12 +48,18 @@ export default async function LocaleLayout({
           <QueryProvider>
             <theme.Header
               storeName={context.store.name}
+              logoUrl={context.store.logo}
               navOrder={settings.nav_order}
               locale={locale}
               cartSlot={<CartLink href={`/${locale}/cart`} />}
             />
             <main>{children}</main>
-            <theme.Footer storeName={context.store.name} />
+            <theme.Footer
+              storeName={context.store.name}
+              logoUrl={context.store.logo}
+              navOrder={settings.nav_order}
+              locale={locale}
+            />
           </QueryProvider>
         </NextIntlClientProvider>
       </body>

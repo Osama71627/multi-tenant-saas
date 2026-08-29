@@ -2,7 +2,16 @@
  * the "quiet luxury" hero convention: no color block, no background
  * image treatment, nothing bold. Deliberately the visual opposite of
  * Electronics's dense gradient/badge hero. */
-export function LuxuryHero({ headline, subheadline }: { headline: string; subheadline: string }) {
+export function LuxuryHero({
+  headline,
+  subheadline,
+}: {
+  headline: string;
+  subheadline: string;
+  /** Not yet used by this theme's hero -- see @saas/theme-aurora's
+   * AuroraHero for why this is declared anyway. */
+  shopHref?: string;
+}) {
   if (!headline && !subheadline) return null;
 
   return (

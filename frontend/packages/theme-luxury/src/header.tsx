@@ -18,6 +18,7 @@ const NAV_HREFS: Record<string, string> = {
  * gradient/dark surfaces. */
 export async function LuxuryHeader({
   storeName,
+  logoUrl,
   navOrder,
   locale,
   homeHref,
@@ -25,6 +26,10 @@ export async function LuxuryHeader({
   disableNav = false,
 }: {
   storeName: string;
+  /** See @saas/theme-aurora's AuroraHeader for the full "logo was
+   * write-only" story -- same optional prop, same fallback-to-text-
+   * wordmark behavior here. */
+  logoUrl?: string | null;
   navOrder: LuxurySettings["nav_order"];
   locale: string;
   homeHref?: string;
@@ -52,12 +57,19 @@ export async function LuxuryHeader({
   return (
     <header className="border-b border-gray-100">
       <div className="flex flex-col items-center gap-4 py-8">
-        <Link
-          href={homeHref ?? `/${locale}`}
-          className="text-xl font-light tracking-[0.15em]"
-          style={{ color: "var(--sf-primary)" }}
-        >
-          {storeName}
+        <Link href={homeHref ?? `/${locale}`} className="flex items-center">
+          {logoUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element -- a real,
+            // absolute, cross-origin URL (Django's own media host).
+            <img src={logoUrl} alt={storeName} className="h-9 w-auto object-contain" />
+          ) : (
+            <span
+              className="text-xl font-light tracking-[0.15em]"
+              style={{ color: "var(--sf-primary)" }}
+            >
+              {storeName}
+            </span>
+          )}
         </Link>
         <div className="flex items-center gap-8">
           <nav className="hidden items-center gap-8 sm:flex">{navItems}</nav>

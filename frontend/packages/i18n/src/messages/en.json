@@ -277,6 +277,8 @@
       "cart": "Cart"
     },
     "home": {
+      "newCollection": "New Collection",
+      "shopNow": "Shop now",
       "featuredProducts": "Featured products",
       "categories": "Shop by category",
       "newsletterTitle": "Stay in the loop",
@@ -290,10 +292,22 @@
       "outOfStock": "Out of stock",
       "inStock": "In stock",
       "quantity": "Quantity",
+      "decreaseQuantity": "Decrease quantity",
+      "increaseQuantity": "Increase quantity",
       "description": "Description",
       "noProducts": "No products yet",
       "noProductsDescription": "This store hasn't added any products yet.",
-      "notFound": "Product not found"
+      "notFound": "Product not found",
+      "allProducts": "All products",
+      "allCategories": "All",
+      "productCount": "{count} products"
+    },
+    "sort": {
+      "label": "Sort by:",
+      "name": "Name",
+      "newest": "Newest",
+      "price_asc": "Price: Low to High",
+      "price_desc": "Price: High to Low"
     },
     "cart": {
       "title": "Your cart",
@@ -305,7 +319,9 @@
       "remove": "Remove",
       "item": "Item",
       "price": "Price",
-      "updateError": "Could not update this item."
+      "updateError": "Could not update this item.",
+      "decreaseQuantity": "Decrease quantity",
+      "increaseQuantity": "Increase quantity"
     },
     "checkout": {
       "title": "Checkout",

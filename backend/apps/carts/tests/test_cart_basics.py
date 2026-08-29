@@ -35,6 +35,24 @@ def test_add_item_to_cart(variant_in_store, storefront_client):
     assert response.data["total_amount"] == 4000
 
 
+def test_cart_item_carries_the_real_product_name_and_slug_not_just_a_sku(
+    variant_in_store, storefront_client
+):
+    """Real gap found live: the cart page only ever had `variant_sku` to
+    show a shopper what's in their cart -- a raw SKU string, never the
+    actual product name/slug a shopper recognizes or could click back
+    to."""
+    response = storefront_client.post(
+        "/api/v1/storefront/cart/items",
+        {"variant": variant_in_store["variant_id"], "quantity": 1},
+        content_type="application/json",
+    )
+    item = response.data["items"][0]
+    assert item["product_name"] == "Widget"
+    assert item["product_slug"] == "widget"
+    assert item["variant_sku"] == "WIDGET-001"
+
+
 def test_adding_the_same_variant_twice_increments_quantity(variant_in_store, storefront_client):
     url = "/api/v1/storefront/cart/items"
     payload = {"variant": variant_in_store["variant_id"], "quantity": 1}

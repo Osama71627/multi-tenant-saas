@@ -7,6 +7,9 @@ export function ElectronicsHero({
 }: {
   headline: string;
   subheadline: string;
+  /** Not yet used by this theme's hero -- see @saas/theme-aurora's
+   * AuroraHero for why this is declared anyway. */
+  shopHref?: string;
 }) {
   if (!headline && !subheadline) return null;
 

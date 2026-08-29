@@ -30,9 +30,24 @@ const PUBLIC_PATH_SEGMENTS = new Set(["login", "register", "themes"]);
  * bounced there, not here. This only saves a wasted round trip for the
  * common "never logged in" case.
  */
+// Real bug found live: `Store.logo`'s real URL (StoreDetailSerializer/
+// StoreListItemSerializer, apps.stores.serializers) is built by Django
+// via `request.build_absolute_uri()` off the BFF's own request to it --
+// in dev that's `BACKEND_INTERNAL_URL`'s origin (http://localhost:8000),
+// a genuinely different origin from this app's own. `img-src`'s
+// original `'self' data:'` (Phase 17, before any page rendered a real
+// uploaded image at all) silently blocked every such `<img>` --
+// discovered only by reading the browser's own console (a CSP-blocked
+// `<img>` fails silent-ish: no visible error on the element itself,
+// just `naturalWidth: 0`, indistinguishable from a genuine 404 without
+// checking the console). Parsed once at module scope, not per-request --
+// this value never changes while the process is running.
+const BACKEND_MEDIA_ORIGIN = new URL(process.env.BACKEND_INTERNAL_URL ?? "http://localhost:8000")
+  .origin;
+
 export default function middleware(request: NextRequest) {
   const nonce = generateNonce();
-  const csp = buildCsp(nonce);
+  const csp = buildCsp(nonce, BACKEND_MEDIA_ORIGIN);
 
   const segments = request.nextUrl.pathname.split("/").filter(Boolean);
   const pathAfterLocale = segments[1]; // segments[0] is the locale

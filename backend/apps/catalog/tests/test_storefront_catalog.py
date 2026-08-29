@@ -210,6 +210,44 @@ def test_cross_tenant_product_is_not_visible_by_a_different_hostname(store_ctx):
     assert detail_response.status_code == 404
 
 
+def test_sort_by_name_is_the_default(store_ctx):
+    _create_product(store_ctx, name="Zebra", slug="zebra", sku="SORT-1", price=1000)
+    _create_product(store_ctx, name="Apple", slug="apple", sku="SORT-2", price=2000)
+
+    response = store_ctx["storefront"].get("/api/v1/storefront/products")
+    assert [p["name"] for p in response.json()] == ["Apple", "Zebra"]
+
+
+def test_sort_by_price_ascending_and_descending(store_ctx):
+    _create_product(store_ctx, name="Mid", slug="sort-mid", sku="SORT-3", price=2000)
+    _create_product(store_ctx, name="Cheap", slug="sort-cheap", sku="SORT-4", price=1000)
+    _create_product(store_ctx, name="Pricey", slug="sort-pricey", sku="SORT-5", price=3000)
+
+    asc = store_ctx["storefront"].get("/api/v1/storefront/products?sort=price_asc")
+    assert [p["name"] for p in asc.json()] == ["Cheap", "Mid", "Pricey"]
+
+    desc = store_ctx["storefront"].get("/api/v1/storefront/products?sort=price_desc")
+    assert [p["name"] for p in desc.json()] == ["Pricey", "Mid", "Cheap"]
+
+
+def test_sort_by_newest(store_ctx):
+    first = _create_product(store_ctx, name="First", slug="sort-first", sku="SORT-6", price=1000)
+    second = _create_product(store_ctx, name="Second", slug="sort-second", sku="SORT-7", price=1000)
+    assert first["id"] != second["id"]  # sanity: genuinely two different products
+
+    response = store_ctx["storefront"].get("/api/v1/storefront/products?sort=newest")
+    assert [p["name"] for p in response.json()] == ["Second", "First"]
+
+
+def test_unknown_sort_value_falls_back_to_name_not_a_500(store_ctx):
+    _create_product(store_ctx, name="Zebra", slug="sort-zebra", sku="SORT-8", price=1000)
+    _create_product(store_ctx, name="Apple", slug="sort-apple", sku="SORT-9", price=2000)
+
+    response = store_ctx["storefront"].get("/api/v1/storefront/products?sort=not-a-real-option")
+    assert response.status_code == 200
+    assert [p["name"] for p in response.json()] == ["Apple", "Zebra"]
+
+
 def test_categories_list(store_ctx):
     response = store_ctx["dashboard"].post(
         f"/api/v1/dashboard/stores/{store_ctx['store'].id}/categories",

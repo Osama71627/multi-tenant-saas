@@ -16,6 +16,7 @@ const NAV_HREFS: Record<string, string> = {
  * spark icon next to the wordmark. */
 export async function ElectronicsHeader({
   storeName,
+  logoUrl,
   navOrder,
   locale,
   homeHref,
@@ -23,6 +24,10 @@ export async function ElectronicsHeader({
   disableNav = false,
 }: {
   storeName: string;
+  /** See @saas/theme-aurora's AuroraHeader for the full "logo was
+   * write-only" story -- same optional prop, same fallback-to-text-
+   * wordmark behavior here. */
+  logoUrl?: string | null;
   navOrder: ElectronicsSettings["nav_order"];
   locale: string;
   homeHref?: string;
@@ -50,9 +55,25 @@ export async function ElectronicsHeader({
   return (
     <header className="text-white" style={{ backgroundColor: "var(--sf-primary)" }}>
       <div className="mx-auto flex max-w-6xl items-center justify-between gap-6 px-4 py-3">
-        <Link href={homeHref ?? `/${locale}`} className="flex items-center gap-1.5 text-lg font-bold">
-          <Zap className="h-4 w-4" style={{ color: "var(--sf-accent)" }} />
-          {storeName}
+        <Link href={homeHref ?? `/${locale}`} className="flex items-center gap-1.5">
+          {logoUrl ? (
+            // A light backing chip -- this header is a dark bar
+            // (`--sf-primary` background), and an uploaded logo is
+            // usually designed for a light background (dark artwork/
+            // text) and would otherwise disappear against it. No way to
+            // know the logo's own colors ahead of time, so this is the
+            // safe default rather than risking an invisible logo.
+            <span className="rounded-md bg-white/95 px-2 py-1">
+              {/* eslint-disable-next-line @next/next/no-img-element -- a real,
+                  absolute, cross-origin URL (Django's own media host). */}
+              <img src={logoUrl} alt={storeName} className="h-6 w-auto object-contain" />
+            </span>
+          ) : (
+            <span className="flex items-center gap-1.5 text-lg font-bold">
+              <Zap className="h-4 w-4" style={{ color: "var(--sf-accent)" }} />
+              {storeName}
+            </span>
+          )}
         </Link>
         <div className="flex items-center gap-5">
           <nav className="hidden items-center gap-6 sm:flex">{navItems}</nav>

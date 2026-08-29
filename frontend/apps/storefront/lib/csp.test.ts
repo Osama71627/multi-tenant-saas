@@ -36,6 +36,14 @@ describe("buildCsp", () => {
     expect(connectSrcDirective).not.toContain("*");
   });
 
+  it("allows the same backend origin in img-src, not a wildcard -- real bug found live: a store's uploaded logo is served by Django directly, silently blocked otherwise", () => {
+    const imgSrcDirective = csp.split(";").find((d) => d.trim().startsWith("img-src"));
+    expect(imgSrcDirective).toContain(backendOrigin);
+    expect(imgSrcDirective).toContain("'self'");
+    expect(imgSrcDirective).toContain("data:");
+    expect(imgSrcDirective).not.toContain("*");
+  });
+
   it("relaxes style-src-attr, and style-src-elem only by the one known react-remove-scroll hash", () => {
     expect(csp).toContain("style-src-attr 'unsafe-inline'");
     const styleElemDirective = csp.split(";").find((d) => d.trim().startsWith("style-src-elem"));

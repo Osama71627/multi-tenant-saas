@@ -57,7 +57,13 @@ export default async function PublicThemePreviewPage({
   const settings = preset.default_settings;
 
   const homeSectionRenderers: Record<string, React.ReactNode> = {
-    hero: <theme.Hero headline={settings.hero_headline} subheadline={settings.hero_subheadline} />,
+    hero: (
+      <theme.Hero
+        headline={settings.hero_headline}
+        subheadline={settings.hero_subheadline}
+        shopHref="#"
+      />
+    ),
     featured_products: (
       <theme.FeaturedProducts products={FIXTURE_PRODUCTS} productHref={() => "#"} viewAllHref={null} />
     ),

@@ -14,7 +14,8 @@ describe("generateNonce", () => {
 
 describe("buildCsp", () => {
   const nonce = "test-nonce-value";
-  const csp = buildCsp(nonce);
+  const mediaOrigin = "http://localhost:8000";
+  const csp = buildCsp(nonce, mediaOrigin);
 
   it("is deny-by-default", () => {
     expect(csp).toContain("default-src 'self'");
@@ -40,8 +41,16 @@ describe("buildCsp", () => {
     );
   });
 
+  it("allows the backend media origin in img-src, not a wildcard -- real bug found live: a store's uploaded logo is served by Django directly, silently blocked otherwise", () => {
+    const imgSrcDirective = csp.split(";").find((d) => d.trim().startsWith("img-src"));
+    expect(imgSrcDirective).toContain(mediaOrigin);
+    expect(imgSrcDirective).toContain("'self'");
+    expect(imgSrcDirective).toContain("data:");
+    expect(imgSrcDirective).not.toContain("*");
+  });
+
   it("embeds a fresh nonce every call", () => {
-    const other = buildCsp(generateNonce());
+    const other = buildCsp(generateNonce(), mediaOrigin);
     expect(other).not.toBe(csp);
   });
 });

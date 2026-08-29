@@ -242,12 +242,21 @@ class TagListCreateView(StoreScopedAPIView):
 # --------------------------------------------------------------------------
 
 
+_SORT_OPTIONS = {"name", "newest", "price_asc", "price_desc"}
+
+
 class StorefrontProductListView(StorefrontAPIView):
     @extend_schema(
         parameters=[
             OpenApiParameter(
                 "category", str, required=False, description="Filter by category slug."
-            )
+            ),
+            OpenApiParameter(
+                "sort",
+                str,
+                required=False,
+                description="One of name (default), newest, price_asc, price_desc.",
+            ),
         ],
         responses=StorefrontProductListSerializer(many=True),
     )
@@ -269,11 +278,31 @@ class StorefrontProductListView(StorefrontAPIView):
         # a product can have variants that are ALL archived, which must not
         # show up here (no purchasable variant left). Joins on the real
         # status column, independent of the prefetch above.
-        products = (
-            products.filter(variants__status=ProductVariant.Status.ACTIVE)
-            .distinct()
-            .order_by("name", "id")
-        )
+        products = products.filter(variants__status=ProductVariant.Status.ACTIVE).distinct()
+
+        # Real gap found live: the storefront's own product listing page
+        # had no sort at all -- always the same fixed name order, no way
+        # for a shopper to browse by price or by what's new. Price lives
+        # on ProductVariant, not Product, so price sort needs an
+        # annotation (the cheapest active variant's price, matching what
+        # StorefrontProductListSerializer.price_amount itself shows --
+        # "the first active variant by position" -- close enough for a
+        # sort order without a second, more complex "lowest price"
+        # semantic that would disagree with the price actually displayed
+        # on each card).
+        sort = request.query_params.get("sort", "name")
+        if sort not in _SORT_OPTIONS:
+            sort = "name"
+        if sort == "newest":
+            products = products.order_by("-created_at", "id")
+        elif sort in ("price_asc", "price_desc"):
+            products = products.annotate(_sort_price=models.Min("variants__price_amount"))
+            products = products.order_by(
+                "_sort_price" if sort == "price_asc" else "-_sort_price", "id"
+            )
+        else:
+            products = products.order_by("name", "id")
+
         return Response(StorefrontProductListSerializer(products, many=True).data)
 
 

@@ -2425,6 +2425,8 @@ export interface components {
             /** Format: uuid */
             variant: string;
             readonly variant_sku: string;
+            readonly product_name: string;
+            readonly product_slug: string;
             quantity: number;
             readonly unit_price_amount: number;
             readonly currency: string;
@@ -3155,13 +3157,21 @@ export interface components {
          *     -- only the public-safe subset a shopper may see, assembled by the
          *     view from `request.tenant_store`. Never the full dashboard
          *     `StoreDetailSerializer` shape (that includes `contact_email`/
-         *     `contact_phone`, merchant-only).
+         *     `contact_phone`, merchant-only). `logo` IS public -- a shopper is
+         *     supposed to see the store's own branding in the header/footer, same
+         *     "public-safe" reasoning that already applies to `name`; real gap
+         *     found live: every storefront theme's header/footer only ever had
+         *     the store NAME to render (plain text wordmark), even for a store
+         *     with a real logo uploaded -- same underlying serializer gap already
+         *     fixed for the dashboard's own StoreListItemSerializer/
+         *     StoreDetailSerializer (apps.stores.serializers).
          */
         StorefrontStore: {
             /** Format: uuid */
             id: string;
             name: string;
             default_currency: string;
+            readonly logo: string | null;
         };
         StorefrontVariant: {
             /** Format: uuid */
@@ -5384,6 +5394,8 @@ export interface operations {
             query?: {
                 /** @description Filter by category slug. */
                 category?: string;
+                /** @description One of name (default), newest, price_asc, price_desc. */
+                sort?: string;
             };
             header?: never;
             path?: never;

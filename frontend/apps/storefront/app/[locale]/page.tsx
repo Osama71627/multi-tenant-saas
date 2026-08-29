@@ -22,7 +22,13 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
   ]);
 
   const sectionRenderers: Record<string, React.ReactNode> = {
-    hero: <theme.Hero headline={settings.hero_headline} subheadline={settings.hero_subheadline} />,
+    hero: (
+      <theme.Hero
+        headline={settings.hero_headline}
+        subheadline={settings.hero_subheadline}
+        shopHref={`/${locale}/products`}
+      />
+    ),
     featured_products: (
       <theme.FeaturedProducts
         products={products}

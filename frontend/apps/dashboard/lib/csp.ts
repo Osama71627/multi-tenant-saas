@@ -24,6 +24,14 @@
  * ELEMENTS, never to a `style=""` ATTRIBUTE -- a CSP spec limitation, not
  * a Next.js one, so there is no nonce/hash alternative here.
  *
+ * `mediaOrigin` widens `img-src` beyond `'self' data:` -- Django serves
+ * an uploaded `Store.logo` directly (StoreDetailSerializer/
+ * StoreListItemSerializer, apps.stores.serializers), a genuinely
+ * different origin from this app's own even though everything else
+ * flows through the same-origin BFF (`/api/bff/...`). See
+ * middleware.ts's own comment on `BACKEND_MEDIA_ORIGIN` for the real
+ * bug this fixes and how that value is derived.
+ *
  * `style-src-elem`'s hash allowlist has one entry: `react-remove-scroll`
  * (a transitive dependency of `@radix-ui/react-select`/`-dialog`, used
  * throughout `@saas/ui`) injects a fixed, static `<style>` element to
@@ -42,7 +50,7 @@ export function generateNonce(): string {
 
 const REACT_REMOVE_SCROLL_STYLE_HASH = "'sha256-nzTgYzXYDNe6BAHiiI7NNlfK8n/auuOAhh2t92YvuXo='";
 
-export function buildCsp(nonce: string): string {
+export function buildCsp(nonce: string, mediaOrigin: string): string {
   return [
     "default-src 'self'",
     "object-src 'none'",
@@ -52,7 +60,7 @@ export function buildCsp(nonce: string): string {
     `script-src 'self' 'nonce-${nonce}' 'strict-dynamic'`,
     `style-src-elem 'self' ${REACT_REMOVE_SCROLL_STYLE_HASH}`,
     "style-src-attr 'unsafe-inline'",
-    "img-src 'self' data:",
+    `img-src 'self' data: ${mediaOrigin}`,
     "font-src 'self'",
     "connect-src 'self'",
   ].join("; ");
