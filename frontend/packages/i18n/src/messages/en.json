@@ -154,6 +154,7 @@
     }
   },
   "themesMarketplace": {
+    "eyebrow": "Store Design Marketplace",
     "title": "Choose your store design",
     "subtitle": "Browse real, ready-made storefront designs. Preview any of them before you commit to one.",
     "empty": "No themes are available right now.",
