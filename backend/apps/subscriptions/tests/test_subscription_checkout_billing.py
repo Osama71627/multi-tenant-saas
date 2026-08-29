@@ -406,6 +406,70 @@ def test_14_refresh_preserves_pending_and_failed_payment_state():
 # ---------------------------------------------------------------------------
 
 
+# ---------------------------------------------------------------------------
+# Skip-payment (demo-only testing convenience, requested after Phase E
+# shipped): same state machine, same idempotent apply_payment_event as a
+# real payment -- just synchronous and always "succeeded", never
+# reachable outside demo mode.
+# ---------------------------------------------------------------------------
+
+
+def test_skip_payment_reaches_awaiting_business_info_without_a_card():
+    client = _ready_for_payment_client("skip-payment@example.com")
+    response = client.post(
+        "/api/v1/subscriptions/checkout-sessions/current/skip-payment-demo", {}, format="json"
+    )
+    assert response.status_code == 201, response.data
+    assert response.data["state"] == "succeeded"  # resolved synchronously, unlike /pay
+
+    session = client.get("/api/v1/subscriptions/checkout-sessions/current")
+    assert session.data["checkout_status"] == "awaiting_business_info"
+    assert session.data["payment_status"] == "paid"
+
+    intent = SubscriptionPaymentIntent.objects.get(id=response.data["id"])
+    assert intent.state == "succeeded"
+    assert (
+        intent.amount
+        == PlanVersion.objects.get(plan__code="professional", is_current=True).price_monthly
+    )
+    # No Store, same invariant as a real payment (item 10).
+    assert Store.objects.count() == 0
+
+
+def test_skip_payment_goes_through_real_webhook_events_not_a_shortcut_field():
+    """Proves this isn't a hand-waved status flip: the same
+    SubscriptionWebhookEvent dedup ledger a real payment/webhook uses
+    gets two real rows, "processing" then "succeeded"."""
+    client = _ready_for_payment_client("skip-payment-events@example.com")
+    response = client.post(
+        "/api/v1/subscriptions/checkout-sessions/current/skip-payment-demo", {}, format="json"
+    )
+    intent_id = response.data["id"]
+    events = SubscriptionWebhookEvent.objects.filter(intent_id=intent_id).order_by("created_at")
+    assert [event.kind for event in events] == ["payment.processing", "payment.succeeded"]
+
+
+def test_skip_payment_requires_a_payable_session():
+    client = _client_for("skip-no-session@example.com")
+    response = client.post(
+        "/api/v1/subscriptions/checkout-sessions/current/skip-payment-demo", {}, format="json"
+    )
+    assert response.status_code == 409
+    assert SubscriptionPaymentIntent.objects.count() == 0
+
+
+def test_skip_payment_is_refused_when_billing_mode_is_not_demo():
+    client = _ready_for_payment_client("skip-prod-blocked@example.com")
+    with override_settings(SUBSCRIPTION_BILLING_MODE="live"):
+        response = client.post(
+            "/api/v1/subscriptions/checkout-sessions/current/skip-payment-demo", {}, format="json"
+        )
+    assert response.status_code == 503
+    assert SubscriptionPaymentIntent.objects.count() == 0
+    session = SubscriptionCheckoutSession.objects.get()
+    assert session.checkout_status == "ready_for_payment"  # untouched
+
+
 def test_15_logout_login_preserves_the_checkout_session():
     email = "logout-login@example.com"
     password = "correct-h0rse!"  # noqa: S105

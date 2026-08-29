@@ -3072,6 +3072,31 @@ paths:
               schema:
                 $ref: '#/components/schemas/SubscriptionPaymentIntent'
           description: ''
+  /api/v1/subscriptions/checkout-sessions/current/skip-payment-demo:
+    post:
+      operationId: api_v1_subscriptions_checkout_sessions_current_skip_payment_demo_create
+      description: |-
+        DEMO-ONLY testing convenience, requested explicitly to speed up
+        manual walkthroughs of the checkout flow: reaches
+        `awaiting_business_info` without filling in the card form. Goes
+        through the exact same state machine and idempotent
+        `apply_payment_event` a real payment does (see
+        `billing.skip_payment_demo`'s own docstring) -- this is NOT a
+        bypass of Phase E's payment gate, it's a same-shaped payment that
+        always succeeds synchronously instead of asynchronously. Gated by
+        `SUBSCRIPTION_BILLING_MODE` exactly like `InitiatePaymentView`, so
+        it is unreachable in production the same way.
+      tags:
+      - api
+      security:
+      - platformJwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SubscriptionPaymentIntent'
+          description: ''
   /api/v1/subscriptions/plans/public:
     get:
       operationId: api_v1_subscriptions_plans_public_list

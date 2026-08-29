@@ -89,7 +89,9 @@
       "expiry": "Expiry",
       "cvc": "CVC",
       "payNow": "Pay now",
-      "error": "Couldn't start the payment. Please try again."
+      "error": "Couldn't start the payment. Please try again.",
+      "skipDemo": "Skip payment (demo)",
+      "skipDemoError": "Couldn't skip the payment. Please try again."
     },
     "processing": {
       "title": "Processing your payment…",

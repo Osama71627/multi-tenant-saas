@@ -184,6 +184,31 @@ describe("SubscriptionCheckout", () => {
     );
   });
 
+  it("Skip payment (demo) calls the skip-payment-demo endpoint, not /pay -- no card required", async () => {
+    const user = userEvent.setup();
+    stubGet(session({}));
+    postMock.mockResolvedValue({
+      data: { id: "intent-1", amount: 19900, currency: "SAR", state: "succeeded", failure_reason: "" },
+      error: undefined,
+    });
+
+    renderWithClient(<SubscriptionCheckout locale="en" email="merchant@example.com" fullName="Merchant Name" />);
+
+    expect(await screen.findByText("Professional")).toBeInTheDocument();
+    await user.click(screen.getByText("paymentMethod.skipDemo"));
+
+    await waitFor(() =>
+      expect(postMock).toHaveBeenCalledWith(
+        "/api/v1/subscriptions/checkout-sessions/current/skip-payment-demo"
+      )
+    );
+    // Never the real /pay endpoint, and never with a card_number body.
+    expect(postMock).not.toHaveBeenCalledWith(
+      "/api/v1/subscriptions/checkout-sessions/current/pay",
+      expect.anything()
+    );
+  });
+
   it("redirects back to /plans when there is no payable session at all", async () => {
     stubGet(null);
 

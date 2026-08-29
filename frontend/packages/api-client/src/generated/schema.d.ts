@@ -2216,6 +2216,34 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/subscriptions/checkout-sessions/current/skip-payment-demo": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * @description DEMO-ONLY testing convenience, requested explicitly to speed up
+         *     manual walkthroughs of the checkout flow: reaches
+         *     `awaiting_business_info` without filling in the card form. Goes
+         *     through the exact same state machine and idempotent
+         *     `apply_payment_event` a real payment does (see
+         *     `billing.skip_payment_demo`'s own docstring) -- this is NOT a
+         *     bypass of Phase E's payment gate, it's a same-shaped payment that
+         *     always succeeds synchronously instead of asynchronously. Gated by
+         *     `SUBSCRIPTION_BILLING_MODE` exactly like `InitiatePaymentView`, so
+         *     it is unreachable in production the same way.
+         */
+        post: operations["api_v1_subscriptions_checkout_sessions_current_skip_payment_demo_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/subscriptions/plans/public": {
         parameters: {
             query?: never;
@@ -5529,6 +5557,25 @@ export interface operations {
         };
     };
     api_v1_subscriptions_checkout_sessions_current_payment_intent_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SubscriptionPaymentIntent"];
+                };
+            };
+        };
+    };
+    api_v1_subscriptions_checkout_sessions_current_skip_payment_demo_create: {
         parameters: {
             query?: never;
             header?: never;

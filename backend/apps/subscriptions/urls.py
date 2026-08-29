@@ -6,6 +6,7 @@ from apps.subscriptions.views import (
     InitiatePaymentView,
     PaymentIntentCurrentView,
     PublicPlanListView,
+    SkipPaymentDemoView,
     SubscriptionBillingWebhookView,
     SubscriptionStatusView,
 )
@@ -33,6 +34,13 @@ urlpatterns = [
         "subscriptions/checkout-sessions/current/payment-intent",
         PaymentIntentCurrentView.as_view(),
         name="checkout-session-payment-intent",
+    ),
+    # Demo-only testing convenience, not part of Phase E's required flow --
+    # see SkipPaymentDemoView's own docstring.
+    path(
+        "subscriptions/checkout-sessions/current/skip-payment-demo",
+        SkipPaymentDemoView.as_view(),
+        name="checkout-session-skip-payment-demo",
     ),
     path(
         "subscriptions/billing/webhook",

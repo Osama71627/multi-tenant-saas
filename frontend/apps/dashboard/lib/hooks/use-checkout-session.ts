@@ -128,6 +128,35 @@ export function useInitiatePayment() {
   });
 }
 
+/** Demo-only testing convenience (requested to speed up manual
+ * walkthroughs of the checkout flow) -- reaches awaiting_business_info
+ * without a card form. Unlike useInitiatePayment, this resolves
+ * SYNCHRONOUSLY: by the time the mutation succeeds, the session has
+ * already moved past payment_pending straight to
+ * awaiting_business_info server-side (apps.subscriptions.billing.
+ * skip_payment_demo applies both webhook-shaped events inline, no
+ * Celery task involved) -- invalidating the checkout-session query
+ * below picks up that final state on its very next fetch, no polling
+ * wait needed for this path specifically. Gated server-side by
+ * SUBSCRIPTION_BILLING_MODE == "demo", same as /pay -- a 503 outside
+ * demo mode is handled by the caller the same way. */
+export function useSkipPaymentDemo() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async () => {
+      const { data, error } = await api.POST(
+        "/api/v1/subscriptions/checkout-sessions/current/skip-payment-demo"
+      );
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: QUERY_KEY });
+      queryClient.setQueryData(["payment-intent"], data);
+    },
+  });
+}
+
 /** Phase E: the current payment intent -- read once at mount (seeded
  * fresh by useInitiatePayment's own onSuccess right after Pay Now, and
  * invalidated again by the checkout page once useCheckoutSession's own

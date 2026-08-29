@@ -154,6 +154,31 @@ class InitiatePaymentView(APIView):
         return Response(SubscriptionPaymentIntentSerializer(intent).data, status=201)
 
 
+class SkipPaymentDemoView(APIView):
+    """DEMO-ONLY testing convenience, requested explicitly to speed up
+    manual walkthroughs of the checkout flow: reaches
+    `awaiting_business_info` without filling in the card form. Goes
+    through the exact same state machine and idempotent
+    `apply_payment_event` a real payment does (see
+    `billing.skip_payment_demo`'s own docstring) -- this is NOT a
+    bypass of Phase E's payment gate, it's a same-shaped payment that
+    always succeeds synchronously instead of asynchronously. Gated by
+    `SUBSCRIPTION_BILLING_MODE` exactly like `InitiatePaymentView`, so
+    it is unreachable in production the same way."""
+
+    permission_classes = [permissions.IsAuthenticated]
+
+    @extend_schema(responses=SubscriptionPaymentIntentSerializer)
+    def post(self, request: Request) -> Response:
+        try:
+            intent = billing.skip_payment_demo(user=request.user)
+        except billing.BillingModeError as exc:
+            return Response({"detail": str(exc)}, status=503)
+        except billing.CheckoutNotPayableError as exc:
+            return Response({"detail": str(exc)}, status=409)
+        return Response(SubscriptionPaymentIntentSerializer(intent).data, status=201)
+
+
 class PaymentIntentCurrentView(APIView):
     """Phase E: the authenticated user's most recent payment intent --
     polled by the checkout page while `state` is pending/processing,

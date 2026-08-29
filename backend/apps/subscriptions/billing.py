@@ -200,6 +200,58 @@ def initiate_payment(*, user: PlatformUser, card_number: str) -> SubscriptionPay
     return intent
 
 
+def skip_payment_demo(*, user: PlatformUser) -> SubscriptionPaymentIntent:
+    """DEMO-ONLY testing convenience (requested explicitly to speed up
+    manual walkthroughs of the checkout flow) -- reaches
+    `awaiting_business_info` without a card form at all. Deliberately
+    does NOT bypass the state machine: it creates a real
+    `SubscriptionPaymentIntent` and drives it through the exact same
+    `apply_payment_event` used by a real payment and by the real
+    webhook endpoint (`processing` then `succeeded`, always -- there is
+    no decline path here, that's what the real Pay Now form is for).
+    The one difference from `initiate_payment`: both events are applied
+    SYNCHRONOUSLY, inline, in this same request -- no Celery task, no
+    `transaction.on_commit`, because nothing here crosses a process
+    boundary the way a real Celery worker would (see `initiate_payment`'s
+    own docstring for why that distinction matters there and not here).
+    Gated by `require_demo_billing_mode()` exactly like every other
+    entry point in this module -- unreachable outside demo mode, so
+    never reachable in production (`config/settings/production.py`
+    hardcodes `SUBSCRIPTION_BILLING_MODE = "live"`)."""
+    require_demo_billing_mode()
+
+    with transaction.atomic():
+        session = (
+            SubscriptionCheckoutSession.objects.select_for_update()
+            .filter(user=user, checkout_status__in=_INITIATABLE_STATUSES)
+            .first()
+        )
+        if session is None or session.plan_version is None:
+            raise CheckoutNotPayableError(
+                "No checkout session ready for payment -- select a plan first."
+            )
+
+        intent = SubscriptionPaymentIntent.objects.create(
+            checkout_session=session,
+            amount=session.plan_version.price_monthly,
+            currency=session.plan_version.currency,
+        )
+        session.checkout_status = SubscriptionCheckoutSession.CheckoutStatus.PAYMENT_PENDING
+        session.payment_status = SubscriptionCheckoutSession.PaymentStatus.PENDING
+        session.save(update_fields=["checkout_status", "payment_status", "updated_at"])
+
+    apply_payment_event(
+        intent_id=intent.id,
+        external_id=f"demo-skip-{intent.id}-processing",
+        kind="payment.processing",
+    )
+    return apply_payment_event(
+        intent_id=intent.id,
+        external_id=f"demo-skip-{intent.id}-succeeded",
+        kind="payment.succeeded",
+    )
+
+
 def get_active_intent(*, user: PlatformUser) -> SubscriptionPaymentIntent | None:
     """The current user's most recent payment intent, if any -- used by
     the checkout page to render pending/succeeded/failed state and by

@@ -17,6 +17,7 @@ import {
   useCheckoutSession,
   useInitiatePayment,
   usePaymentIntent,
+  useSkipPaymentDemo,
 } from "@/lib/hooks/use-checkout-session";
 import { usePublicThemePresets } from "@/lib/hooks/use-public-theme-presets";
 
@@ -54,6 +55,7 @@ export function SubscriptionCheckout({
   });
   const { data: presets } = usePublicThemePresets();
   const initiatePayment = useInitiatePayment();
+  const skipPayment = useSkipPaymentDemo();
 
   const status = session?.checkout_status;
   // The only statuses this page knows how to render -- anything else
@@ -145,6 +147,9 @@ export function SubscriptionCheckout({
           onSubmit={() => initiatePayment.mutate({ card_number: cardNumber })}
           isPending={initiatePayment.isPending}
           isError={initiatePayment.isError}
+          onSkip={() => skipPayment.mutate()}
+          isSkipPending={skipPayment.isPending}
+          isSkipError={skipPayment.isError}
         />
       </div>
     );
@@ -244,6 +249,9 @@ export function SubscriptionCheckout({
         onSubmit={() => initiatePayment.mutate({ card_number: cardNumber })}
         isPending={initiatePayment.isPending}
         isError={initiatePayment.isError}
+        onSkip={() => skipPayment.mutate()}
+        isSkipPending={skipPayment.isPending}
+        isSkipError={skipPayment.isError}
       />
     </div>
   );
@@ -260,6 +268,9 @@ function PaymentForm({
   onSubmit,
   isPending,
   isError,
+  onSkip,
+  isSkipPending,
+  isSkipError,
 }: {
   t: ReturnType<typeof useTranslations>;
   cardNumber: string;
@@ -271,6 +282,15 @@ function PaymentForm({
   onSubmit: () => void;
   isPending: boolean;
   isError: boolean;
+  // Demo-only testing convenience (see useSkipPaymentDemo's docstring) --
+  // skips the card form entirely and reaches awaiting_business_info
+  // through the same idempotent state machine a real payment uses.
+  // Server-gated by SUBSCRIPTION_BILLING_MODE, so this button is a no-op
+  // (503, surfaced via isSkipError) outside demo mode -- never hidden
+  // client-side, since there is nothing client-visible to gate it on.
+  onSkip: () => void;
+  isSkipPending: boolean;
+  isSkipError: boolean;
 }) {
   const canSubmit = cardNumber.trim().length >= 4 && cardExpiry && cardCvc;
   return (
@@ -317,6 +337,18 @@ function PaymentForm({
         {isError ? <p className="text-sm text-destructive">{t("paymentMethod.error")}</p> : null}
         <Button className="w-full" size="lg" disabled={!canSubmit || isPending} onClick={onSubmit}>
           {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : t("paymentMethod.payNow")}
+        </Button>
+        {isSkipError ? (
+          <p className="text-sm text-destructive">{t("paymentMethod.skipDemoError")}</p>
+        ) : null}
+        <Button
+          className="w-full"
+          variant="ghost"
+          size="sm"
+          disabled={isSkipPending}
+          onClick={onSkip}
+        >
+          {isSkipPending ? <Loader2 className="h-4 w-4 animate-spin" /> : t("paymentMethod.skipDemo")}
         </Button>
       </CardContent>
     </Card>
