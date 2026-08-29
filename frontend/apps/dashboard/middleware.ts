@@ -42,12 +42,34 @@ export default function middleware(request: NextRequest) {
   // "/[locale]/app" specifically so the root could become public.
   const isPublicPath = !pathAfterLocale || PUBLIC_PATH_SEGMENTS.has(pathAfterLocale);
   const hasAccessTokenCookie = request.cookies.has(ACCESS_TOKEN_COOKIE);
+  const locale = segments[0] && locales.includes(segments[0] as never) ? segments[0] : defaultLocale;
 
   if (!isPublicPath && !hasAccessTokenCookie) {
-    const locale = segments[0] && locales.includes(segments[0] as never) ? segments[0] : defaultLocale;
     const loginUrl = new URL(`/${locale}/login`, request.url);
     loginUrl.searchParams.set("next", request.nextUrl.pathname);
     const redirectResponse = NextResponse.redirect(loginUrl);
+    redirectResponse.headers.set("Content-Security-Policy", csp);
+    return redirectResponse;
+  }
+
+  // Real bug found live: every "Create Your Store"/"Use this theme"
+  // link (landing page, theme marketplace, theme preview) points at
+  // "/register" UNCONDITIONALLY -- with no check for "is this visitor
+  // already logged in?". A customer who already registered once, then
+  // goes back to browse another theme and clicks it again, landed back
+  // on the registration FORM a second time instead of continuing on
+  // to /plans with their (possibly new) theme choice -- register-
+  // form.tsx's own account-creation call would then fail outright
+  // (that email already exists) with no clear next step offered. Same
+  // reasoning for "/login". This check is the exact mirror of the one
+  // above (cheap cookie presence, UX-only, not the real authorization
+  // boundary -- Django/the real page remain authoritative if this
+  // cookie turns out to be stale) -- see that block's own comment.
+  if ((pathAfterLocale === "register" || pathAfterLocale === "login") && hasAccessTokenCookie) {
+    const theme = request.nextUrl.searchParams.get("theme");
+    const next = request.nextUrl.searchParams.get("next");
+    const target = next ?? (theme ? `/${locale}/plans?theme=${theme}` : `/${locale}/app`);
+    const redirectResponse = NextResponse.redirect(new URL(target, request.url));
     redirectResponse.headers.set("Content-Security-Policy", csp);
     return redirectResponse;
   }
