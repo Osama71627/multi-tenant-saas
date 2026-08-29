@@ -4,7 +4,7 @@ import { Badge } from "@saas/ui/badge";
 import { Button } from "@saas/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@saas/ui/card";
 import { Skeleton } from "@saas/ui/skeleton";
-import { Check, Loader2, Palette } from "lucide-react";
+import { Check, Loader2 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -84,31 +84,33 @@ export function PlanSelector({
   }, [session?.checkout_status, router, locale]);
 
   const effectiveThemeId = session?.theme_preset_id ?? themePresetIdFromUrl;
+
+  // No theme picked at all (arrived here directly, with no session and
+  // no ?theme=) -- real UX gap found live: this used to show a static
+  // "choose a theme first" screen with nothing but a "Browse themes"
+  // button, an extra dead click on the way to where the merchant was
+  // always going next. Redirect straight there instead, same pattern
+  // as the PAST_PLAN_SELECTION redirect above -- this page has nothing
+  // useful to render without a theme regardless.
+  useEffect(() => {
+    if (!sessionLoading && !startSession.isPending && !effectiveThemeId) {
+      router.replace(`/${locale}/themes`);
+    }
+  }, [sessionLoading, startSession.isPending, effectiveThemeId, router, locale]);
+
   const selectedPreset = presets?.find((p) => p.id === effectiveThemeId);
   const palette = selectedPreset?.default_settings as ThemePresetPalette | undefined;
 
   if (
     sessionLoading ||
     startSession.isPending ||
+    !effectiveThemeId ||
     (session?.checkout_status && PAST_PLAN_SELECTION.has(session.checkout_status))
   ) {
     return (
       <div className="mx-auto max-w-4xl space-y-6 px-4 py-12">
         <Skeleton className="h-24 w-full" />
         <Skeleton className="h-64 w-full" />
-      </div>
-    );
-  }
-
-  if (!effectiveThemeId) {
-    return (
-      <div className="mx-auto flex max-w-md flex-col items-center gap-4 px-4 py-24 text-center">
-        <Palette className="h-10 w-10 text-muted-foreground" />
-        <h1 className="text-xl font-semibold">{t("noThemeTitle")}</h1>
-        <p className="text-muted-foreground">{t("noThemeBody")}</p>
-        <Button asChild>
-          <Link href={`/${locale}/themes`}>{t("browseThemes")}</Link>
-        </Button>
       </div>
     );
   }

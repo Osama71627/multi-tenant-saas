@@ -3043,6 +3043,7 @@ export interface components {
             /** Format: email */
             readonly contact_email: string;
             readonly contact_phone: string;
+            readonly logo: string | null;
             /** Format: date-time */
             readonly created_at: string;
         };
@@ -3052,6 +3053,7 @@ export interface components {
             readonly name: string;
             readonly slug: string;
             readonly status: components["schemas"]["StatusBb6Enum"];
+            readonly logo: string | null;
         };
         /**
          * @description `credentials`/`webhook_secret` are write-only (docs/ARCHITECTURE.md section

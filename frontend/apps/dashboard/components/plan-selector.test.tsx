@@ -107,12 +107,12 @@ function stubReadEndpoints(session: { status: number; data?: unknown }) {
 }
 
 describe("PlanSelector", () => {
-  it("prompts to browse themes first when no theme is known", async () => {
+  it("redirects straight to the theme marketplace when no theme is known -- no dead-end screen", async () => {
     stubReadEndpoints({ status: 404 });
 
     renderWithClient(<PlanSelector locale="en" themePresetIdFromUrl={null} />);
 
-    expect(await screen.findByText("noThemeTitle")).toBeInTheDocument();
+    await waitFor(() => expect(replace).toHaveBeenCalledWith("/en/themes"));
     expect(screen.queryByText("Professional")).not.toBeInTheDocument();
   });
 

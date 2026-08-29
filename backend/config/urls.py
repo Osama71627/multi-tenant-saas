@@ -1,5 +1,7 @@
 import logging
 
+from django.conf import settings
+from django.conf.urls.static import static
 from django.contrib import admin
 from django.core.cache import cache
 from django.db import connections
@@ -72,3 +74,19 @@ urlpatterns = [
     path("api/v1/", include("apps.analytics.urls")),
     path("api/v1/", include("apps.suppliers.urls")),
 ]
+
+# Real gap found live: `Store.logo` (Phase F) uploads and saves to disk
+# correctly, but NOTHING served it back over HTTP at all -- no urlpattern
+# for MEDIA_URL existed anywhere, in dev OR production (no Caddy mount
+# either), so an uploaded logo was structurally unviewable by ANY client,
+# forever, even though `store.logo.name`/the DB path were completely
+# correct (which is exactly why the existing upload tests, which only
+# assert the model field, never caught this). `django.conf.urls.static.
+# static()` is Django's own documented dev-only convenience for exactly
+# this -- guarded by DEBUG, a no-op otherwise, so it can never
+# accidentally serve `mediafiles/` in production (production.py sets
+# DEBUG=False unconditionally, config/settings/production.py). This does
+# NOT solve production media serving (local disk is not a real answer
+# there -- needs cloud object storage or a Caddy static mount, a
+# separate, larger decision) -- dev/local-testing only, deliberately.
+urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

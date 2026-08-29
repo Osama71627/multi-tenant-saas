@@ -4952,6 +4952,10 @@ components:
         contact_phone:
           type: string
           readOnly: true
+        logo:
+          type: string
+          nullable: true
+          readOnly: true
         created_at:
           type: string
           format: date-time
@@ -4962,6 +4966,7 @@ components:
       - created_at
       - default_currency
       - id
+      - logo
       - name
       - slug
       - status
@@ -4983,8 +4988,13 @@ components:
           allOf:
           - $ref: '#/components/schemas/StatusBb6Enum'
           readOnly: true
+        logo:
+          type: string
+          nullable: true
+          readOnly: true
       required:
       - id
+      - logo
       - name
       - slug
       - status

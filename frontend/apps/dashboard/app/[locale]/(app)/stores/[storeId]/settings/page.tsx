@@ -85,6 +85,25 @@ export default function StoreSettingsPage() {
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+            {/* Read-only for now -- editing/replacing the logo from here
+                isn't built yet (UpdateStoreSerializer has no `logo`
+                field, only the one-shot business-info upload does).
+                Real gap found live: the logo was write-only everywhere
+                until now -- a merchant had no way to confirm their
+                upload actually became their store's logo. This is that
+                confirmation. */}
+            <div className="space-y-1.5">
+              <Label>Logo</Label>
+              {store.logo ? (
+                // A real, absolute, cross-origin URL (Django's own media
+                // host), not a local/next/image-optimizable asset.
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={store.logo} alt="" className="h-16 w-16 rounded-lg border object-cover" />
+              ) : (
+                <p className="text-sm text-muted-foreground">No logo uploaded yet.</p>
+              )}
+            </div>
+
             <div className="space-y-1.5">
               <Label htmlFor="name">Store name</Label>
               <Input id="name" {...register("name")} />

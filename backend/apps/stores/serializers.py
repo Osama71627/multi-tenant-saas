@@ -37,6 +37,20 @@ class StoreDomainSerializer(serializers.ModelSerializer):
 
 
 class StoreDetailSerializer(serializers.ModelSerializer):
+    # Real gap found live: Store.logo (Phase F's business-info upload)
+    # was write-only -- saved to disk correctly, but never returned by
+    # ANY serializer, so nothing anywhere could show the merchant their
+    # own uploaded logo back. SerializerMethodField (not a plain
+    # ImageField) because this is read-only here on purpose -- editing
+    # the logo is a separate, not-yet-built settings flow; `.url`
+    # raises ValueError on an empty ImageField, so `None` for "no logo
+    # set" has to be handled explicitly. Absolute, not the bare
+    # MEDIA_URL-relative path, so the browser (a different origin
+    # entirely from Django -- see docs/ARCHITECTURE.md) can load it
+    # directly with a plain `<img src>`, no BFF proxying needed (public,
+    # unauthenticated storefront images already work the identical way).
+    logo = serializers.SerializerMethodField()
+
     class Meta:
         model = Store
         fields = [
@@ -47,9 +61,16 @@ class StoreDetailSerializer(serializers.ModelSerializer):
             "default_currency",
             "contact_email",
             "contact_phone",
+            "logo",
             "created_at",
         ]
         read_only_fields = fields
+
+    def get_logo(self, obj: Store) -> str | None:
+        if not obj.logo:
+            return None
+        request = self.context.get("request")
+        return request.build_absolute_uri(obj.logo.url) if request else obj.logo.url
 
 
 class UpdateStoreSerializer(serializers.ModelSerializer):
@@ -84,7 +105,18 @@ class UpdateStoreSerializer(serializers.ModelSerializer):
 
 
 class StoreListItemSerializer(serializers.ModelSerializer):
+    # See StoreDetailSerializer.logo's own comment -- same gap, same fix,
+    # needed here too since the store switcher (every page's own header)
+    # reads from THIS serializer, not StoreDetailSerializer.
+    logo = serializers.SerializerMethodField()
+
     class Meta:
         model = Store
-        fields = ["id", "name", "slug", "status"]
+        fields = ["id", "name", "slug", "status", "logo"]
         read_only_fields = fields
+
+    def get_logo(self, obj: Store) -> str | None:
+        if not obj.logo:
+            return None
+        request = self.context.get("request")
+        return request.build_absolute_uri(obj.logo.url) if request else obj.logo.url

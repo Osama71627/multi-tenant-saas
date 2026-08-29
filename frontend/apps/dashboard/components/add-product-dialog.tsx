@@ -16,7 +16,7 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 
-import { useCreateProduct } from "@/lib/hooks/use-products";
+import { useCreateProduct, useUpdateProductStatus } from "@/lib/hooks/use-products";
 
 function slugify(value: string) {
   return value
@@ -43,6 +43,7 @@ export function AddProductDialog({
 }) {
   const [open, setOpen] = useState(false);
   const createProduct = useCreateProduct(storeId);
+  const updateStatus = useUpdateProductStatus(storeId);
 
   const {
     register,
@@ -57,7 +58,7 @@ export function AddProductDialog({
 
   async function onSubmit(values: FormValues) {
     try {
-      await createProduct.mutateAsync({
+      const product = await createProduct.mutateAsync({
         name: values.name,
         slug: values.slug,
         sku: values.sku,
@@ -66,10 +67,26 @@ export function AddProductDialog({
         seo_title: "",
         seo_description: "",
       });
+      // apps.catalog.serializers.CreateProductSerializer has no `status`
+      // field at all -- POST always creates a Product in the safe,
+      // catalog-wide default (Status.DRAFT, apps/catalog/models.py),
+      // invisible on this dialog (no status control shown here). A
+      // merchant filling in name/SKU/price through THIS quick-add flow
+      // has unambiguously already decided to sell it -- real bug found
+      // live: they'd create a product, see it in the list, then find
+      // setup-checklist.tsx's "At least one active product" step still
+      // unchecked with no explanation, since it specifically requires
+      // status === "active". Activating right after creation, through
+      // the exact same PATCH the manual draft/active/archived dropdown
+      // in the products table already uses, closes that gap without
+      // touching the backend's own safe default for every OTHER
+      // creation path (CSV import, supplier sync -- apps/suppliers --
+      // which should stay draft-by-default until a merchant reviews it).
+      await updateStatus.mutateAsync({ productId: product.id, status: "active" });
       reset();
       setOpen(false);
     } catch {
-      // surfaced below via createProduct.error
+      // surfaced below via createProduct.error/updateStatus.error
     }
   }
 
@@ -122,9 +139,10 @@ export function AddProductDialog({
             </div>
           </div>
 
-          {createProduct.isError ? (
+          {createProduct.isError || updateStatus.isError ? (
             <p className="text-sm text-destructive">
               {(createProduct.error as { detail?: string })?.detail ??
+                (updateStatus.error as { detail?: string })?.detail ??
                 "Could not create the product."}
             </p>
           ) : null}

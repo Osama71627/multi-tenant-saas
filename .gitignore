@@ -23,7 +23,10 @@ htmlcov/
 
 # Django
 backend/staticfiles/
-backend/media/
+# Real MEDIA_ROOT (config/settings/base.py: BASE_DIR / "mediafiles") --
+# "backend/media/" above never matched anything; found live while
+# testing Store.logo uploads locally, which were about to land in git.
+backend/mediafiles/
 *.log
 db.sqlite3
 

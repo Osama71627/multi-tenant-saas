@@ -59,7 +59,9 @@ class StoreListCreateView(APIView):
         if not isinstance(request.user, PlatformUser):
             raise exceptions.PermissionDenied
         stores = services.list_stores_for_user(user=request.user)
-        return Response(StoreListItemSerializer(stores, many=True).data)
+        return Response(
+            StoreListItemSerializer(stores, many=True, context={"request": request}).data
+        )
 
     @extend_schema(request=CreateStoreSerializer, responses={201: StoreDetailSerializer})
     def post(self, request: Request) -> Response:
@@ -89,7 +91,10 @@ class StoreListCreateView(APIView):
                 {"detail": "A store with this slug already exists."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
-        return Response(StoreDetailSerializer(store).data, status=status.HTTP_201_CREATED)
+        return Response(
+            StoreDetailSerializer(store, context={"request": request}).data,
+            status=status.HTTP_201_CREATED,
+        )
 
 
 class StoreDetailView(StoreScopedAPIView):
@@ -97,7 +102,7 @@ class StoreDetailView(StoreScopedAPIView):
 
     @extend_schema(responses=StoreDetailSerializer)
     def get(self, request: Request, store_id) -> Response:
-        return Response(StoreDetailSerializer(self.store).data)
+        return Response(StoreDetailSerializer(self.store, context={"request": request}).data)
 
     @extend_schema(request=UpdateStoreSerializer, responses={200: StoreDetailSerializer})
     def patch(self, request: Request, store_id) -> Response:
@@ -110,4 +115,4 @@ class StoreDetailView(StoreScopedAPIView):
                 {"detail": "A store with this slug already exists."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
-        return Response(StoreDetailSerializer(self.store).data)
+        return Response(StoreDetailSerializer(self.store, context={"request": request}).data)

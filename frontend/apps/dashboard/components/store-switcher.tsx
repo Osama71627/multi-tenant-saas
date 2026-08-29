@@ -32,7 +32,7 @@ export function StoreSwitcher({ locale, currentStoreId }: { locale: string; curr
   return (
     <DropdownMenu>
       <DropdownMenuTrigger className="flex h-9 min-w-40 items-center gap-2 rounded-md border px-3 text-sm font-medium hover:bg-accent">
-        <StoreIcon className="h-4 w-4 shrink-0 text-muted-foreground" />
+        <StoreLogo logo={currentStore?.logo} />
         <span className="truncate">{currentStore?.name ?? t("label")}</span>
         <ChevronsUpDown className="ms-auto h-4 w-4 shrink-0 text-muted-foreground" />
       </DropdownMenuTrigger>
@@ -43,6 +43,7 @@ export function StoreSwitcher({ locale, currentStoreId }: { locale: string; curr
           stores.map((store) => (
             <DropdownMenuItem key={store.id} asChild>
               <Link href={`/${locale}/stores/${store.id}`} className="flex items-center gap-2">
+                <StoreLogo logo={store.logo} />
                 <span className="flex-1 truncate">{store.name}</span>
                 {store.id === currentStoreId ? <Check className="h-4 w-4" /> : null}
               </Link>
@@ -64,5 +65,29 @@ export function StoreSwitcher({ locale, currentStoreId }: { locale: string; curr
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
+  );
+}
+
+/**
+ * Real gap found live: `Store.logo` (Phase F's business-info upload)
+ * saved to disk and to the DB correctly, but nothing anywhere ever
+ * rendered it back -- a merchant had no way to confirm their upload
+ * actually became their store's logo. The switcher (present in every
+ * dashboard page's header) is the highest-visibility place to close
+ * that gap. Falls back to the same generic `StoreIcon` as before when
+ * a store has no logo set (the normal case for most stores, and the
+ * only case before this fix existed at all).
+ */
+function StoreLogo({ logo }: { logo?: string | null }) {
+  if (!logo) {
+    return <StoreIcon className="h-4 w-4 shrink-0 text-muted-foreground" />;
+  }
+  return (
+    // A real, absolute, cross-origin URL (Django's own media host, see
+    // apps.stores.serializers.StoreListItemSerializer.get_logo) --
+    // next/image's optimizer only handles configured origins/local
+    // assets, not an arbitrary per-tenant one.
+    // eslint-disable-next-line @next/next/no-img-element
+    <img src={logo} alt="" className="h-4 w-4 shrink-0 rounded-sm object-cover" />
   );
 }

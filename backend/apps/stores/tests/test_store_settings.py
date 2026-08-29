@@ -14,6 +14,8 @@ from rest_framework.test import APIClient
 from apps.accounts.models import PlatformUser
 from apps.stores import services
 from apps.stores.models import Store
+from apps.tenancy.context import TenantContext, tenant_context
+from apps.tenancy.db import apply_tenant_context_to_db, clear_tenant_context_from_db
 
 pytestmark = pytest.mark.django_db
 
@@ -126,3 +128,36 @@ def test_non_member_cannot_update_someone_elses_store(owner_client_and_store):
 
     store.refresh_from_db()
     assert store.name == "Settings Co"
+
+
+def test_get_returns_a_real_absolute_logo_url_when_one_is_set(owner_client_and_store):
+    """Real gap found live: Store.logo (Phase F's business-info upload)
+    saved to disk correctly but was never returned by this (or any)
+    serializer -- the settings page had no way to show it back, so a
+    merchant could never confirm their upload actually became their
+    store's logo. Proven fixed here on the detail endpoint too (the
+    list endpoint's own version of this is test_store_list.py's)."""
+    client, _owner, store = owner_client_and_store
+    # UPDATE on Store is RLS-restricted to the store's own context (its
+    # docstring: "UPDATE/DELETE are restricted to the store's own
+    # context") -- a plain `.save()` with no GUC set updates zero rows
+    # and Django's own update_fields check raises DatabaseError for it.
+    with tenant_context(TenantContext(store_id=store.id)):
+        apply_tenant_context_to_db(store.id)
+        try:
+            store.logo = "store_logos/settings-test-logo.png"
+            store.save(update_fields=["logo"])
+        finally:
+            clear_tenant_context_from_db()
+
+    response = client.get(f"/api/v1/dashboard/stores/{store.id}")
+    assert response.status_code == 200
+    assert response.data["logo"].startswith("http")
+    assert "store_logos/settings-test-logo.png" in response.data["logo"]
+
+
+def test_get_returns_a_null_logo_when_none_is_set(owner_client_and_store):
+    client, _owner, _store = owner_client_and_store
+    response = client.get(f"/api/v1/dashboard/stores/{_store.id}")
+    assert response.status_code == 200
+    assert response.data["logo"] is None
