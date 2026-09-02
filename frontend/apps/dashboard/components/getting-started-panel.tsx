@@ -8,6 +8,9 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
+import { useStore } from "@/lib/hooks/use-store";
+import { storefrontUrl } from "@/lib/storefront-url";
+
 /**
  * The one-time "how do I use this thing" screen the user asked for
  * right after Phase F's business-info step, before landing on the real
@@ -22,6 +25,7 @@ export function GettingStartedPanel({ locale, storeId }: { locale: string; store
   const t = useTranslations("gettingStarted");
   const router = useRouter();
   const [dismissed, setDismissed] = useState(false);
+  const { data: store } = useStore(storeId);
 
   function dismiss() {
     setDismissed(true);
@@ -30,6 +34,18 @@ export function GettingStartedPanel({ locale, storeId }: { locale: string; store
 
   if (dismissed) return null;
 
+  // Real gap found live: "Preview store" here always opened the
+  // internal fixture-data preview (demo products, not this merchant's
+  // real catalog) -- see setup-checklist.tsx's identical fix and its
+  // own, more detailed comment. Opens the merchant's real storefront in
+  // a new tab now that `store.primary_domain` exists; falls back to the
+  // fixture preview only in the genuinely impossible case of a Store
+  // with no primary domain row.
+  const previewStoreHref = store?.primary_domain
+    ? storefrontUrl(store.primary_domain)
+    : `/${locale}/stores/${storeId}/preview`;
+  const previewStoreIsExternal = Boolean(store?.primary_domain);
+
   const steps = [
     {
       icon: Package,
@@ -37,6 +53,7 @@ export function GettingStartedPanel({ locale, storeId }: { locale: string; store
       body: t("addProducts.body"),
       href: `/${locale}/stores/${storeId}/products`,
       cta: t("addProducts.cta"),
+      external: false,
     },
     {
       icon: CreditCard,
@@ -44,13 +61,15 @@ export function GettingStartedPanel({ locale, storeId }: { locale: string; store
       body: t("connectPayments.body"),
       href: `/${locale}/stores/${storeId}/payments`,
       cta: t("connectPayments.cta"),
+      external: false,
     },
     {
       icon: Eye,
       title: t("previewStore.title"),
       body: t("previewStore.body"),
-      href: `/${locale}/stores/${storeId}/preview`,
+      href: previewStoreHref,
       cta: t("previewStore.cta"),
+      external: previewStoreIsExternal,
     },
   ];
 
@@ -72,7 +91,13 @@ export function GettingStartedPanel({ locale, storeId }: { locale: string; store
             <p className="font-medium">{step.title}</p>
             <p className="text-sm text-muted-foreground">{step.body}</p>
             <Button asChild variant="link" className="h-auto p-0">
-              <Link href={step.href}>{step.cta} →</Link>
+              {step.external ? (
+                <a href={step.href} target="_blank" rel="noopener noreferrer">
+                  {step.cta} →
+                </a>
+              ) : (
+                <Link href={step.href}>{step.cta} →</Link>
+              )}
             </Button>
           </div>
         ))}

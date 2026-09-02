@@ -4969,6 +4969,10 @@ components:
           type: string
           nullable: true
           readOnly: true
+        primary_domain:
+          type: string
+          nullable: true
+          readOnly: true
         created_at:
           type: string
           format: date-time
@@ -4981,6 +4985,7 @@ components:
       - id
       - logo
       - name
+      - primary_domain
       - slug
       - status
     StoreListItem:

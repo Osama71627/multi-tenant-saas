@@ -3046,6 +3046,7 @@ export interface components {
             readonly contact_email: string;
             readonly contact_phone: string;
             readonly logo: string | null;
+            readonly primary_domain: string | null;
             /** Format: date-time */
             readonly created_at: string;
         };

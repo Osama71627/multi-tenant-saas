@@ -50,6 +50,22 @@ class StoreDetailSerializer(serializers.ModelSerializer):
     # directly with a plain `<img src>`, no BFF proxying needed (public,
     # unauthenticated storefront images already work the identical way).
     logo = serializers.SerializerMethodField()
+    # Real gap found live: the dashboard's "Preview store" button opened
+    # its own internal fixture-data preview (small bundled demo
+    # products, see apps/themes/models.py's own "no DemoStore" docstring)
+    # unconditionally -- including for a merchant who already has a real
+    # Store with real products, which is actively misleading (looks like
+    # your storefront, isn't). That internal preview still has a real,
+    # separate job (theme browsing before a real Store exists, e.g. the
+    # public marketplace preview) and is untouched; this field exists so
+    # the dashboard can instead link to the merchant's OWN real live
+    # storefront. `StoreDomain.hostname` (not slug + a frontend-derived
+    # root domain) so this stays correct automatically if/when a
+    # merchant ever attaches a real custom domain (`StoreDomain.kind`
+    # already models that, unused today) -- the frontend never
+    # reconstructs a hostname itself. `None` only for a Store somehow
+    # missing its always-created-at-signup primary domain row.
+    primary_domain = serializers.SerializerMethodField()
 
     class Meta:
         model = Store
@@ -62,6 +78,7 @@ class StoreDetailSerializer(serializers.ModelSerializer):
             "contact_email",
             "contact_phone",
             "logo",
+            "primary_domain",
             "created_at",
         ]
         read_only_fields = fields
@@ -71,6 +88,21 @@ class StoreDetailSerializer(serializers.ModelSerializer):
             return None
         request = self.context.get("request")
         return request.build_absolute_uri(obj.logo.url) if request else obj.logo.url
+
+    def get_primary_domain(self, obj: Store) -> str | None:
+        # `.unscoped`, not `.objects` -- deliberately, matching
+        # apps.stores.middleware's own identical choice for this exact
+        # model: `StoreDomain.objects` (TenantManager) raises
+        # TenantContextMissingError whenever no store-scoped GUC is set
+        # on the request (e.g. the store LIST endpoint, which spans
+        # every store a user owns -- no single tenant context to set).
+        # This does not bypass RLS -- StoreDomain's own SELECT policy is
+        # already open (`USING (true)`, see its model docstring: hostnames
+        # are public information), `.unscoped` just skips the
+        # application-level "which tenant?" check that `.objects` adds
+        # on top of RLS for models that actually need one.
+        domain = StoreDomain.unscoped.filter(store=obj, is_primary=True).first()
+        return domain.hostname if domain else None
 
 
 class UpdateStoreSerializer(serializers.ModelSerializer):

@@ -15,6 +15,7 @@ import { usePaymentProviders } from "@/lib/hooks/use-payment-providers";
 import { useProducts } from "@/lib/hooks/use-products";
 import { useShippingZones } from "@/lib/hooks/use-shipping-zones";
 import { useStore } from "@/lib/hooks/use-store";
+import { storefrontUrl } from "@/lib/storefront-url";
 
 interface ChecklistItem {
   label: string;
@@ -149,8 +150,22 @@ export function SetupChecklist({ storeId }: { storeId: string }) {
                 <StoreIcon className="h-4 w-4" />
                 Live storefront preview
               </div>
+              {/* Real gap found live: this used to always open the
+                  internal fixture-data preview at `${base}/preview`
+                  (demo products, not this merchant's real catalog) --
+                  misleading once a store actually has real products, as
+                  this one does. Opens the merchant's own real storefront
+                  in a new tab now that `store.primary_domain` exists;
+                  falls back to the fixture preview only in the genuinely
+                  impossible case of a Store with no primary domain row. */}
               <Button asChild size="sm" variant="outline">
-                <Link href={`${base}/preview`}>Preview store</Link>
+                {store?.primary_domain ? (
+                  <a href={storefrontUrl(store.primary_domain)} target="_blank" rel="noopener noreferrer">
+                    Preview store
+                  </a>
+                ) : (
+                  <Link href={`${base}/preview`}>Preview store</Link>
+                )}
               </Button>
             </div>
           </>

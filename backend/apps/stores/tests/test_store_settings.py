@@ -161,3 +161,17 @@ def test_get_returns_a_null_logo_when_none_is_set(owner_client_and_store):
     response = client.get(f"/api/v1/dashboard/stores/{_store.id}")
     assert response.status_code == 200
     assert response.data["logo"] is None
+
+
+def test_get_returns_the_real_primary_domain(owner_client_and_store):
+    """Real gap found live: the dashboard's "Preview store" button always
+    opened its own internal fixture-data preview, even for a merchant
+    who already had a real store with real products -- misleading,
+    looked like their storefront but wasn't. `services.create_store`
+    always creates a primary `StoreDomain` row (slug + PLATFORM_ROOT_DOMAIN)
+    in the same transaction as the Store itself, so this is never null
+    for a store that exists at all."""
+    client, _owner, store = owner_client_and_store
+    response = client.get(f"/api/v1/dashboard/stores/{store.id}")
+    assert response.status_code == 200
+    assert response.data["primary_domain"] == f"{store.slug}.lvh.me"
