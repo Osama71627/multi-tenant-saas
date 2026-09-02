@@ -1,0 +1,10 @@
+export { HomestoreCategoriesSection } from "./categories-section";
+export { HomestoreFeaturedProducts } from "./featured-products";
+export { HomestoreFooter } from "./footer";
+export { HomestoreHeader } from "./header";
+export { HomestoreHero } from "./hero";
+export { HomestoreNewsletter } from "./newsletter";
+export { HomestoreProductCard } from "./product-card";
+export { HomestoreProductGrid } from "./product-grid";
+export { homestoreCssVars } from "./theme-vars";
+export type { HomestoreCategory, HomestoreProductListItem, HomestoreSettings } from "./types";

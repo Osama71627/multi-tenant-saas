@@ -33,6 +33,17 @@ import {
   fashionCssVars,
 } from "@saas/theme-fashion";
 import {
+  HomestoreCategoriesSection,
+  HomestoreFeaturedProducts,
+  HomestoreFooter,
+  HomestoreHeader,
+  HomestoreHero,
+  HomestoreNewsletter,
+  HomestoreProductCard,
+  HomestoreProductGrid,
+  homestoreCssVars,
+} from "@saas/theme-homestore";
+import {
   LuxuryCategoriesSection,
   LuxuryFeaturedProducts,
   LuxuryFooter,
@@ -99,6 +110,16 @@ const THEMES = {
     ProductCard: LuxuryProductCard,
     ProductGrid: LuxuryProductGrid,
   },
+  homestore: {
+    Header: HomestoreHeader,
+    Footer: HomestoreFooter,
+    Hero: HomestoreHero,
+    FeaturedProducts: HomestoreFeaturedProducts,
+    Categories: HomestoreCategoriesSection,
+    Newsletter: HomestoreNewsletter,
+    ProductCard: HomestoreProductCard,
+    ProductGrid: HomestoreProductGrid,
+  },
 } as const;
 
 export function getTheme(code: string) {
@@ -116,6 +137,8 @@ export function getCssVars(code: string, settings: AuroraSettings): CSSPropertie
       return electronicsCssVars(settings);
     case "luxury":
       return luxuryCssVars(settings);
+    case "homestore":
+      return homestoreCssVars(settings);
     default:
       return auroraCssVars(settings);
   }

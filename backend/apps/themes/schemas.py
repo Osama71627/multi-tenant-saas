@@ -56,6 +56,9 @@ _SETTINGS_SERIALIZERS: dict[tuple[str, int], type[serializers.Serializer]] = {
     ("fashion", 1): AuroraV1SettingsSerializer,
     ("electronics", 1): AuroraV1SettingsSerializer,
     ("luxury", 1): AuroraV1SettingsSerializer,
+    # Phase B follow-up: HomeStore (@saas/theme-homestore) -- same
+    # reasoning, same shared contract, a genuinely different rendering.
+    ("homestore", 1): AuroraV1SettingsSerializer,
 }
 
 

@@ -278,11 +278,16 @@
     },
     "home": {
       "newCollection": "تشكيلة جديدة",
+      "newArrivals": "وصل حديثًا",
       "shopNow": "تسوّق الآن",
       "featuredProducts": "منتجات مميزة",
+      "collection": "التشكيلة",
       "categories": "تسوّق حسب الفئة",
+      "browse": "تصفّح",
       "newsletterTitle": "ابقَ على اطلاع",
       "newsletterBody": "أحدث المنتجات والعروض تصلك أولًا بأول.",
+      "footerTagline": "وجهتك المميزة لأساسيات المنزل — جودة منتقاة بعناية، توصَل إليك بثقة.",
+      "freeShippingBanner": "شحن مجاني على جميع الطلبات",
       "viewAll": "عرض الكل"
     },
     "product": {

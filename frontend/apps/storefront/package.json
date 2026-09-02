@@ -16,6 +16,7 @@
     "@saas/theme-aurora": "workspace:*",
     "@saas/theme-electronics": "workspace:*",
     "@saas/theme-fashion": "workspace:*",
+    "@saas/theme-homestore": "workspace:*",
     "@saas/theme-luxury": "workspace:*",
     "@saas/ui": "workspace:*",
     "@tanstack/react-query": "^5.62.0",

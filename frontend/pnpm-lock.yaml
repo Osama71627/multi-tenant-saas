@@ -49,6 +49,9 @@ importers:
       '@saas/theme-fashion':
         specifier: workspace:*
         version: link:../../packages/theme-fashion
+      '@saas/theme-homestore':
+        specifier: workspace:*
+        version: link:../../packages/theme-homestore
       '@saas/theme-luxury':
         specifier: workspace:*
         version: link:../../packages/theme-luxury
@@ -252,6 +255,9 @@ importers:
       '@saas/theme-fashion':
         specifier: workspace:*
         version: link:../../packages/theme-fashion
+      '@saas/theme-homestore':
+        specifier: workspace:*
+        version: link:../../packages/theme-homestore
       '@saas/theme-luxury':
         specifier: workspace:*
         version: link:../../packages/theme-luxury
@@ -443,6 +449,31 @@ importers:
         version: 5.9.3
 
   packages/theme-fashion:
+    dependencies:
+      lucide-react:
+        specifier: ^0.469.0
+        version: 0.469.0(react@19.2.8)
+      next:
+        specifier: ^15.1.0
+        version: 15.5.23(@babel/core@7.29.7(supports-color@10.2.2))(@playwright/test@1.62.1)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
+      next-intl:
+        specifier: ^3.26.0
+        version: 3.26.5(next@15.5.23(@babel/core@7.29.7(supports-color@10.2.2))(@playwright/test@1.62.1)(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(react@19.2.8)
+      react:
+        specifier: ^19.0.0
+        version: 19.2.8
+    devDependencies:
+      '@saas/config':
+        specifier: workspace:*
+        version: link:../config
+      '@types/react':
+        specifier: ^19.0.0
+        version: 19.2.18
+      typescript:
+        specifier: ^5.7.0
+        version: 5.9.3
+
+  packages/theme-homestore:
     dependencies:
       lucide-react:
         specifier: ^0.469.0

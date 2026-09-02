@@ -4,7 +4,12 @@ import type { AuroraSettings } from "@saas/theme-aurora";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 
-import { FIXTURE_CATEGORIES, FIXTURE_PRODUCTS } from "@/components/preview/fixture-catalog";
+import {
+  FIXTURE_CATEGORIES,
+  FIXTURE_PRODUCTS,
+  HOMESTORE_FIXTURE_CATEGORIES,
+  HOMESTORE_FIXTURE_PRODUCTS,
+} from "@/components/preview/fixture-catalog";
 import { PreviewTabs } from "@/components/preview/preview-tabs";
 import { getCssVars, getTheme } from "@/components/preview/theme-registry";
 import { getTranslations } from "next-intl/server";
@@ -55,6 +60,12 @@ export default async function PublicThemePreviewPage({
 
   const theme = getTheme(preset.theme_code);
   const settings = preset.default_settings;
+  // See apps/dashboard/app/[locale]/(app)/stores/[storeId]/preview/
+  // page.tsx's identical comment -- HomeStore ships real bundled demo
+  // photography, fixture-only.
+  const isHomestore = preset.theme_code === "homestore";
+  const fixtureProducts = isHomestore ? HOMESTORE_FIXTURE_PRODUCTS : FIXTURE_PRODUCTS;
+  const fixtureCategories = isHomestore ? HOMESTORE_FIXTURE_CATEGORIES : FIXTURE_CATEGORIES;
 
   const homeSectionRenderers: Record<string, React.ReactNode> = {
     hero: (
@@ -65,9 +76,9 @@ export default async function PublicThemePreviewPage({
       />
     ),
     featured_products: (
-      <theme.FeaturedProducts products={FIXTURE_PRODUCTS} productHref={() => "#"} viewAllHref={null} />
+      <theme.FeaturedProducts products={fixtureProducts} productHref={() => "#"} viewAllHref={null} />
     ),
-    categories: <theme.Categories categories={FIXTURE_CATEGORIES} categoryHref={() => "#"} />,
+    categories: <theme.Categories categories={fixtureCategories} categoryHref={() => "#"} />,
     newsletter: <theme.Newsletter />,
   };
 
@@ -81,11 +92,11 @@ export default async function PublicThemePreviewPage({
 
   const catalogPanel = (
     <div className="mx-auto max-w-6xl px-4 py-10">
-      <theme.ProductGrid products={FIXTURE_PRODUCTS} productHref={() => "#"} />
+      <theme.ProductGrid products={fixtureProducts} productHref={() => "#"} />
     </div>
   );
 
-  const exampleProduct = FIXTURE_PRODUCTS[1];
+  const exampleProduct = fixtureProducts[1];
   const productPanel = exampleProduct ? (
     <div className="mx-auto max-w-3xl space-y-6 px-4 py-10">
       <div>
@@ -108,7 +119,7 @@ export default async function PublicThemePreviewPage({
     </div>
   ) : null;
 
-  const cartItems = FIXTURE_PRODUCTS.slice(0, 2);
+  const cartItems = fixtureProducts.slice(0, 2);
   const cartSubtotal = cartItems.reduce((sum, p) => sum + (p.price_amount ?? 0), 0);
   const cartPanel = (
     <div className="mx-auto max-w-3xl px-4 py-10">

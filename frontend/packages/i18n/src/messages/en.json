@@ -278,11 +278,16 @@
     },
     "home": {
       "newCollection": "New Collection",
+      "newArrivals": "New Arrivals",
       "shopNow": "Shop now",
       "featuredProducts": "Featured products",
+      "collection": "Collection",
       "categories": "Shop by category",
+      "browse": "Browse",
       "newsletterTitle": "Stay in the loop",
       "newsletterBody": "New arrivals and offers, straight from us.",
+      "footerTagline": "Your premium destination for home essentials — curated quality, thoughtfully delivered.",
+      "freeShippingBanner": "Free shipping on every order",
       "viewAll": "View all"
     },
     "product": {
