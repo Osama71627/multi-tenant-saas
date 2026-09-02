@@ -2,6 +2,9 @@ import {
   ACCESS_TOKEN_COOKIE,
   REFRESH_TOKEN_COOKIE,
   CSRF_COOKIE,
+  accessTokenCookieDeleteOptions,
+  refreshTokenCookieDeleteOptions,
+  csrfCookieDeleteOptions,
   backendLogout,
 } from "@saas/auth";
 import { NextRequest, NextResponse } from "next/server";
@@ -15,11 +18,13 @@ export async function POST(request: NextRequest) {
   }
 
   const response = NextResponse.json({ ok: true });
-  response.cookies.delete({ name: ACCESS_TOKEN_COOKIE, path: "/" });
-  // Must match the exact `path` it was SET with (refreshTokenCookieOptions,
-  // "/api/bff/refresh") -- the browser only deletes a cookie whose
-  // name+path attribute pair matches; a mismatched path silently no-ops.
-  response.cookies.delete({ name: REFRESH_TOKEN_COOKIE, path: "/api/bff/refresh" });
-  response.cookies.delete({ name: CSRF_COOKIE, path: "/" });
+  // Must match the exact `path` (and, for the `__Host-` prefixed names,
+  // `secure: true`) each cookie was SET with -- see
+  // accessTokenCookieDeleteOptions()'s own docstring for the real bug
+  // this once caused: omitting `secure` here made the browser silently
+  // reject the whole deletion, so "Log out" appeared to do nothing.
+  response.cookies.delete({ name: ACCESS_TOKEN_COOKIE, ...accessTokenCookieDeleteOptions() });
+  response.cookies.delete({ name: REFRESH_TOKEN_COOKIE, ...refreshTokenCookieDeleteOptions() });
+  response.cookies.delete({ name: CSRF_COOKIE, ...csrfCookieDeleteOptions() });
   return response;
 }

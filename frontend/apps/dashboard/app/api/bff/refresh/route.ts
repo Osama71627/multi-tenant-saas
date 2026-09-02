@@ -3,6 +3,8 @@ import {
   REFRESH_TOKEN_COOKIE,
   accessTokenCookieOptions,
   refreshTokenCookieOptions,
+  accessTokenCookieDeleteOptions,
+  refreshTokenCookieDeleteOptions,
   refreshWithMutex,
   BackendAuthError,
 } from "@saas/auth";
@@ -31,8 +33,11 @@ export async function POST(request: NextRequest) {
     return response;
   } catch (error) {
     const response = NextResponse.json({ detail: "Session expired." }, { status: 401 });
-    response.cookies.delete({ name: ACCESS_TOKEN_COOKIE, path: "/" });
-    response.cookies.delete({ name: REFRESH_TOKEN_COOKIE, path: "/api/bff/refresh" });
+    // See accessTokenCookieDeleteOptions()'s own docstring -- omitting
+    // `secure: true` here made the browser silently keep the stale
+    // `__Host-` cookies instead of clearing them on a failed refresh.
+    response.cookies.delete({ name: ACCESS_TOKEN_COOKIE, ...accessTokenCookieDeleteOptions() });
+    response.cookies.delete({ name: REFRESH_TOKEN_COOKIE, ...refreshTokenCookieDeleteOptions() });
     if (error instanceof BackendAuthError) return response;
     throw error;
   }

@@ -59,3 +59,36 @@ export function csrfCookieOptions() {
     maxAge: ACCESS_TOKEN_MAX_AGE_SECONDS,
   };
 }
+
+/**
+ * Real bug found live: "Log out" silently did nothing (session survived
+ * a hard reload) because every `response.cookies.delete({ name, path })`
+ * call site across the three BFF routes that clear these cookies passed
+ * only `{ name, path }` -- omitting `secure: true`. The `__Host-` prefix
+ * (see this file's own module docstring) requires EVERY Set-Cookie for
+ * that name, deletions included, to carry `Secure` or the browser drops
+ * the header entirely and silently keeps the original cookie. Verified
+ * live via a raw `curl -D -` against /api/bff/logout: the response's own
+ * `set-cookie: __Host-at=; Path=/; Expires=...` line was missing
+ * `Secure`, which Chrome/Edge/Firefox all require present-or-reject for
+ * a `__Host-`-prefixed name -- confirmed by the subsequent authenticated
+ * proxy call still succeeding after "logout".
+ *
+ * These three helpers exist so every deletion call site spreads the
+ * exact same `{ path, secure: true }` pair the matching `*CookieOptions()`
+ * above used to SET it, instead of re-typing (and potentially
+ * re-omitting) it inline at each of the three route files that clear
+ * these cookies (logout, the generic proxy's definitive-401 fallback,
+ * refresh's own failure path).
+ */
+export function accessTokenCookieDeleteOptions() {
+  return { path: "/", secure: true };
+}
+
+export function refreshTokenCookieDeleteOptions() {
+  return { path: "/api/bff/refresh", secure: true };
+}
+
+export function csrfCookieDeleteOptions() {
+  return { path: "/", secure: true };
+}

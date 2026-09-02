@@ -5,6 +5,8 @@ import {
   CSRF_HEADER,
   accessTokenCookieOptions,
   refreshTokenCookieOptions,
+  accessTokenCookieDeleteOptions,
+  refreshTokenCookieDeleteOptions,
   backendProxy,
   csrfTokensMatch,
   refreshWithMutex,
@@ -85,8 +87,11 @@ async function handle(request: NextRequest, path: string[]): Promise<NextRespons
       refreshTokenCookieOptions()
     );
   } else if (upstream.status === 401) {
-    response.cookies.delete({ name: ACCESS_TOKEN_COOKIE, path: "/" });
-    response.cookies.delete({ name: REFRESH_TOKEN_COOKIE, path: "/api/bff/refresh" });
+    // See accessTokenCookieDeleteOptions()'s own docstring -- omitting
+    // `secure: true` here made the browser silently keep the stale
+    // `__Host-` cookies instead of clearing them on a definitive 401.
+    response.cookies.delete({ name: ACCESS_TOKEN_COOKIE, ...accessTokenCookieDeleteOptions() });
+    response.cookies.delete({ name: REFRESH_TOKEN_COOKIE, ...refreshTokenCookieDeleteOptions() });
   }
 
   return response;
